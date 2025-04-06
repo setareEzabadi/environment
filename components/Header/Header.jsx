@@ -1,0 +1,43 @@
+import { useState } from "react";
+import { FaTree, FaHome, FaInfoCircle, FaRegNewspaper, FaEnvelope } from "react-icons/fa";
+import styles from "./Header.module.css";
+
+const Header = () => {
+    const [menuOpen, setMenuOpen] = useState(false);
+    const toggleMenu = () => setMenuOpen(prev => !prev);
+    const closeMenu = () => setMenuOpen(false);
+
+    return (
+        <header className={styles.header}>
+            <div className={styles.logo}>
+                <FaTree className={styles.logoIcon} />
+                <span>EcoSite</span>
+            </div>
+            <nav className={`${styles.nav} ${menuOpen ? styles.open : ""}`}>
+                <a href="/" onClick={closeMenu}>
+                    <span>خانه</span>
+                    <FaHome className={styles.navIcon} />
+                </a>
+                <a href="/about" onClick={closeMenu}>
+                    <span>درباره ما</span>
+                    <FaInfoCircle className={styles.navIcon} />
+                </a>
+                <a href="/blog" onClick={closeMenu}>
+                    <span>بلاگ</span>
+                    <FaRegNewspaper className={styles.navIcon} />
+                </a>
+                <a href="/contact" onClick={closeMenu}>
+                    <span>تماس</span>
+                    <FaEnvelope className={styles.navIcon} />
+                </a>
+            </nav>
+            <div className={styles.hamburger} onClick={toggleMenu}>
+                <span className={menuOpen ? styles.active : ""}></span>
+                <span className={menuOpen ? styles.active : ""}></span>
+                <span className={menuOpen ? styles.active : ""}></span>
+            </div>
+        </header>
+    );
+};
+
+export default Header;

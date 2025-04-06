@@ -1,0 +1,137 @@
+/* پس‌زمینه‌ی متحرک */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  /* background: linear-gradient(135deg, #27ae60, #2ecc71); */
+  background: linear-gradient(135deg, #288c52, #17c05f);
+  background-size: 200% 200%;
+  animation: gradientShift 10s ease infinite;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 10;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.logoIcon {
+  font-size: 2rem;
+  color: #fff;
+  animation: pulse 3s infinite;
+}
+
+/* انیمیشن پالس برای لوگو آیکون */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.nav {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  flex-direction: row-reverse;
+}
+
+.nav a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.nav a:hover {
+  color: #f1f1f1;
+}
+
+.nav a:after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  right: 0;
+  width: 0;
+  height: 2px;
+  background: #fff;
+  transition: width 0.3s ease;
+}
+
+.nav a:hover:after {
+  width: 100%;
+}
+
+.navIcon {
+  font-size: 1.1rem;
+}
+
+/* منوی همبرگری */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  cursor: pointer;
+  gap: 4px;
+}
+
+.hamburger span {
+  height: 3px;
+  width: 25px;
+  background: #fff;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+/* حالت منوی موبایل */
+@media (max-width: 768px) {
+  .nav {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    background-size: 200% 200%;
+    animation: gradientShift 10s ease infinite;
+    flex-direction: column;
+    width: 220px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-150%);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+  .nav.open {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .hamburger {
+    display: flex;
+  }
+}
