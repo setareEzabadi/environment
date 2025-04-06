@@ -1,0 +1,93 @@
+/* انیمیشن گرادیان مشابه */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* افکت موج در بالای فوتر */
+@keyframes wave {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(5%); }
+  100% { transform: translateX(0); }
+}
+
+.footer {
+  position: relative;
+  /* background: linear-gradient(135deg, #27ae60, #2ecc71); */
+  background: linear-gradient(135deg, #288c52, #17c05f);
+  background-size: 200% 200%;
+  animation: gradientShift 12s ease infinite;
+  padding: 2rem 1rem 1rem;
+  color: #fff;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  margin-top: 2rem;
+}
+
+.wave {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  width: 100%;
+  height: 20px;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 1200 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1200 0L0 0 598.97 114.72 1200 0z' fill='%23fff' opacity='0.9'%3E%3C/path%3E%3C/svg%3E") repeat-x;
+  animation: wave 6s ease-in-out infinite;
+}
+
+.footerContent {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 2;
+}
+
+.section {
+  flex: 1;
+  min-width: 220px;
+}
+
+.section h4 {
+  font-size: 1.3rem;
+  margin-bottom: 0.5rem;
+  color: #fff;
+}
+
+.section p {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.socialIcons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.socialLink {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1.3rem;
+  transition: color 0.3s ease;
+}
+
+.socialLink:hover {
+  color: #f1f1f1;
+}
+
+.copy p {
+  font-size: 0.9rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  padding-top: 1rem;
+}
+
+@media (max-width: 768px) {
+  .footerContent {
+    flex-direction: column;
+    align-items: center;
+  }
+}
