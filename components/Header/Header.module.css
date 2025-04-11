@@ -30,7 +30,7 @@
   position: relative;
   z-index: 10;
   padding: 0.8rem 1.5rem;
-  border-radius: 0 0 8px 8px;
+  /* border-radius: 0 0 8px 8px; */
 }
 
 /* ظرف مرکزی مرکزچین */
@@ -64,6 +64,7 @@
   align-items: center;
   flex: 1;
   justify-content: center;
+  flex-direction: row-reverse;
 }
 
 .nav a {
