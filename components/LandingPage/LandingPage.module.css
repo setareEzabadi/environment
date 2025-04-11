@@ -1,0 +1,164 @@
+.landingPage {
+  font-family: iranSans;
+  direction: rtl;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero {
+  background: url("../../public/Assets/img/bg.png") center/cover no-repeat;
+  height: 80vh;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.heroContent {
+  position: relative;
+  color: #fff;
+  text-align: center;
+  z-index: 1;
+  padding: 0 1rem;
+  animation: fadeInUp 1.2s ease-out;
+}
+
+.heroContent h1 {
+  font-size: 3.2rem;
+  margin-bottom: 1rem;
+}
+
+.heroContent p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.ctaButton {
+  display: inline-block;
+  background-color: #17c05f;
+  color: #fff;
+  padding: 0.85rem 1.8rem;
+  border-radius: 30px;
+  text-decoration: none;
+  font-size: 1rem;
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.ctaButton:hover {
+  background-color: #148f4b;
+  transform: scale(1.05);
+}
+
+.features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 3rem 1rem;
+  gap: 2rem;
+  background-color: #f8f8f8;
+}
+
+.feature {
+  flex: 1 1 300px;
+  background: #fff;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: fadeInUp 1s ease-out;
+}
+
+.feature:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.feature h2 {
+  margin-bottom: 1rem;
+  color: #288c52;
+}
+
+.feature p {
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.gallery {
+  padding: 3rem 1rem;
+  background-color: #eaf9f1;
+  text-align: center;
+}
+
+.gallery h2 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  color: #288c52;
+}
+
+.cta {
+  text-align: center;
+  padding: 2rem 1rem;
+  background-color: #f0f0f0;
+  animation: fadeInUp 1s ease-out;
+}
+
+.cta h2 {
+  margin-bottom: 1rem;
+  color: #288c52;
+}
+
+@media (max-width: 768px) {
+  .heroContent h1 {
+    font-size: 2rem;
+  }
+
+  .heroContent p {
+    font-size: 1rem;
+  }
+
+  .ctaButton {
+    font-size: 0.9rem;
+    padding: 0.7rem 1.5rem;
+  }
+
+  .features {
+    flex-direction: column;
+    padding: 2rem 1rem;
+  }
+
+  .feature {
+    padding: 1.5rem 1rem;
+  }
+
+  .gallery h2,
+  .mapSection h2,
+  .cta h2 {
+    font-size: 1.5rem;
+  }
+}
