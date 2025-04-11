@@ -19,7 +19,7 @@ const Header = () => {
                         <span>خانه</span>
                         <FaHome className={styles.navIcon} />
                     </a>
-                    <a href="/about" onClick={closeMenu}>
+                    <a href="/about_page" onClick={closeMenu}>
                         <span>درباره ما</span>
                         <FaInfoCircle className={styles.navIcon} />
                     </a>
@@ -27,8 +27,8 @@ const Header = () => {
                         <span>بلاگ</span>
                         <FaRegNewspaper className={styles.navIcon} />
                     </a>
-                    <a href="/contact" onClick={closeMenu}>
-                        <span>تماس</span>
+                    <a href="/contact_page" onClick={closeMenu}>
+                        <span>تماس با ما</span>
                         <FaEnvelope className={styles.navIcon} />
                     </a>
                 </nav>
