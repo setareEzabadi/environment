@@ -1,3 +1,9 @@
+@font-face {
+  font-family: iranSans;
+  src: url("../../public/Assets/Font/IRANSans/WebFonts/fonts/woff/IRANSansWeb\(FaNum\)_Light.woff")
+    format("woff");
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -14,6 +20,7 @@ html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
+  font-family: iranSans !important;
 }
 
 body {
