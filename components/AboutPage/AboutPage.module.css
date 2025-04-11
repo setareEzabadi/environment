@@ -1,0 +1,90 @@
+.aboutPage {
+  padding: 5rem 1.5rem;
+  font-family: iranSans;
+  direction: rtl;
+  background-color: #f3fdf8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.section {
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.05);
+  padding: 3rem 2rem;
+  max-width: 850px;
+  width: 100%;
+  margin-bottom: 2.5rem;
+  text-align: center;
+  transition: transform 0.3s ease;
+}
+
+.section:hover {
+  transform: translateY(-5px);
+}
+
+.sectionTitle {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #24734d;
+  margin-bottom: 1.5rem;
+  border-bottom: 3px solid #a7e6c5;
+  display: inline-block;
+  padding-bottom: 0.5rem;
+}
+
+.sectionText {
+  font-size: 1.05rem;
+  color: #444;
+  line-height: 2;
+}
+
+.valuesList {
+  text-align: right;
+  list-style: none;
+  padding-right: 0;
+  margin-top: 2rem;
+}
+
+.valuesList li {
+  background-color: #e9fbf0;
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.7rem;
+  border-radius: 12px;
+  color: #2d6e4e;
+  font-weight: 500;
+  position: relative;
+  padding-right: 2.5rem;
+}
+
+.valuesList li::before {
+  content: "✓";
+  position: absolute;
+  right: 1rem;
+  color: #21a75d;
+  font-weight: bold;
+}
+
+@media (max-width: 768px) {
+  .aboutPage {
+    padding: 3rem 1rem;
+  }
+
+  .section {
+    padding: 2rem 1rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.5rem;
+  }
+
+  .sectionText {
+    font-size: 1rem;
+  }
+
+  .valuesList li {
+    font-size: 0.95rem;
+    padding: 0.6rem 1rem;
+  }
+}
