@@ -1,0 +1,27 @@
+.otpWrapper {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  direction: ltr;
+  margin-bottom: 10px;
+}
+
+.otpInput {
+  width: 42px;
+  height: 48px;
+  font-size: 22px;
+  text-align: center;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.otpInput:focus {
+  border-color: #288c52;
+}
+
+.filled {
+  border-color: #288c52;
+  background-color: #f0fff4;
+}
