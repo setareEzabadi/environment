@@ -1,0 +1,16 @@
+.sliderContainer {
+  padding: 1rem;
+}
+
+.slide {
+  padding: 0 0.5rem;
+  width: 250px;
+  height: 250px;
+}
+
+.image {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
