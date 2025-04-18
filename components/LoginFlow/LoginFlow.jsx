@@ -47,17 +47,21 @@ const LoginFlow = () => {
     };
 
     const changePassword = async (data) => {
-        // ارسال newPass و confirm به عنوان فیلدهای مورد انتظار بک‌اند
+        const token = localStorage.getItem("auth_token");
+
         const res = await fetch(`${env.baseUrl}api/chengePassword`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            },
             body: JSON.stringify({
                 phone,
                 newPass: data.newPassword,
                 confirm: data.confirmPassword
             })
         });
-        return await res.json(); // انتظار: { status: true, message: "گذرواژه تغییر یافت." }
+        return await res.json();
     };
 
     const userRegister = async () => {
@@ -102,7 +106,9 @@ const LoginFlow = () => {
         const res = await checkPassword();
         if (res.status) {
             toast.success("ورود موفقیت آمیز بود", ToastReaction.success);
-            // ریدایرکت به داشبورد یا صفحه اصلی
+            localStorage.setItem("auth_user", JSON.stringify(res.user));
+
+            window.location.href = "/";
         } else {
             toast.error("پسورد اشتباه است", ToastReaction.error);
         }
@@ -133,8 +139,12 @@ const LoginFlow = () => {
         }
         const res = await verifyOtp(otp);
         if (res.status) {
-            // بعد از تایید صحیح OTP، به مرحله تغییر رمز منتقل شویم
-            setStep("change");
+            if (!res.userExisted) {
+                toast.warning("ابتدا باید ثبت‌نام کنید", ToastReaction.warning);
+                setStep("register");
+            } else {
+                setStep("change");
+            }
         } else {
             toast.error("کد تایید اشتباه است", ToastReaction.error);
         }
@@ -174,7 +184,11 @@ const LoginFlow = () => {
         const res = await userRegister();
         if (res.status) {
             toast.success("ثبت نام موفق", ToastReaction.success);
-            // ریدایرکت به داشبورد
+
+            localStorage.setItem("auth_token", res.token);
+            localStorage.setItem("auth_user", JSON.stringify(res.user));
+
+            window.location.href = "/";
         } else {
             toast.error("خطا در ثبت نام", ToastReaction.error);
         }
