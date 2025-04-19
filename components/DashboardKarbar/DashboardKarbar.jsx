@@ -1,9 +1,62 @@
-import styles from "./DashboardKarbar.module.css";
+import React, { useState } from 'react';
+import {
+    FaFileAlt,
+    FaBullhorn,
+    FaStar,
+    FaUserEdit,
+    FaSignOutAlt
+} from 'react-icons/fa';
+import styles from './DashboardKarbar.module.css';
+import Reports from './Reports';
+import Campaigns from './Campaigns';
+import Stats from './Stats';
+import Profile from './Profile';
+
+// بخش‌های داشبورد
+const sections = [
+    { key: 'reports', label: 'گزارش‌ها', icon: FaFileAlt },
+    { key: 'campaigns', label: 'کمپین‌ها', icon: FaBullhorn },
+    { key: 'stats', label: 'امتیازات', icon: FaStar },
+    { key: 'profile', label: 'ویرایش پروفایل', icon: FaUserEdit }
+];
 
 const DashboardKarbar = () => {
-    return (
-        <div className={styles.DashboardKarbar}>
+    const [active, setActive] = useState('reports');
 
+    const handleLogout = () => {
+        window.location.href = '/';
+    };
+
+    return (
+        <div className={styles.container}>
+            <aside className={styles.sidebar}>
+                <ul>
+                    {sections.map(section => {
+                        const Icon = section.icon;
+                        const isActive = active === section.key;
+                        return (
+                            <li
+                                key={section.key}
+                                className={isActive ? styles.active : ''}
+                                onClick={() => setActive(section.key)}
+                            >
+                                <Icon className={styles.icon} />
+                                <span>{section.label}</span>
+                            </li>
+                        );
+                    })}
+                    <li className={styles.logout} onClick={handleLogout}>
+                        <FaSignOutAlt className={styles.icon} />
+                        <span>خروج</span>
+                    </li>
+                </ul>
+            </aside>
+            <main className={styles.content}>
+                {active === 'reports' && <Reports />}
+                {active === 'campaigns' && <Campaigns />}
+                {active === 'stats' && <Stats />}
+                {active === 'profile' && <Profile />}
+            </main>
         </div>
     );
 };
