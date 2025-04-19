@@ -106,6 +106,7 @@ const LoginFlow = () => {
         const res = await checkPassword();
         if (res.status) {
             toast.success("ورود موفقیت آمیز بود", ToastReaction.success);
+            localStorage.setItem("auth_token", res.token);
             localStorage.setItem("auth_user", JSON.stringify(res.user));
 
             window.location.href = "/";
@@ -143,6 +144,7 @@ const LoginFlow = () => {
                 toast.warning("ابتدا باید ثبت‌نام کنید", ToastReaction.warning);
                 setStep("register");
             } else {
+                localStorage.setItem("auth_token", res.token);
                 setStep("change");
             }
         } else {
