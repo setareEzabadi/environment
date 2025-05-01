@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router'; // استفاده از useRouter برای دسترسی به query
 import styles from './LoginFlow.module.css';
 import env from '../../env';
 import OtpInput from './OtpInput';
@@ -7,9 +8,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import ToastReaction from '../../plugins/ToastReaction/ToastReaction';
 
 const LoginFlow = () => {
-    // مراحل: "phone" → "password" → "otp" → "forgot" → "change" → "register"
     const [step, setStep] = useState("phone");
-    const [method, setMethod] = useState(null); // "password" یا "otp"
+    const [method, setMethod] = useState(null);
     const [phone, setPhone] = useState("");
     const [phoneError, setPhoneError] = useState("");
     const [otp, setOtp] = useState("");
@@ -17,8 +17,21 @@ const LoginFlow = () => {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [registerData, setRegisterData] = useState({ name: "", family: "", email: "", password: "" });
+    const router = useRouter();
 
-    // API توابع – نمونه؛ در محیط واقعی مدیریت خطا و بارگذاری را اضافه کنید
+    useEffect(() => {
+        if (router.query.step === 'change') {
+            const user = JSON.parse(localStorage.getItem('auth_user') || '{}');
+            if (user.phone) {
+                setPhone(user.phone);
+                setStep('change');
+            } else {
+                toast.error('شماره موبایل کاربر یافت نشد');
+                setStep('phone');
+            }
+        }
+    }, [router.query]);
+
     const sendOtp = async () => {
         const res = await fetch(`${env.baseUrl}api/sendOtp`, {
             method: "POST",
@@ -34,7 +47,7 @@ const LoginFlow = () => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ phone, otp: enteredOtp })
         });
-        return await res.json(); // انتظار: { status: true, message: "...", phone: "...", userExisted: true/false }
+        return await res.json();
     };
 
     const checkPassword = async () => {
@@ -43,13 +56,12 @@ const LoginFlow = () => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ phone, password })
         });
-        return await res.json(); // انتظار: { status: true, message: "پسورد صحیح است.", user: { … } }
+        return await res.json();
     };
 
     const changePassword = async (data) => {
         const token = localStorage.getItem("auth_token");
-
-        const res = await fetch(`${env.baseUrl}api/chengePassword`, {
+        const res = await fetch(`${env.baseUrl}api/changePassword`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -73,7 +85,6 @@ const LoginFlow = () => {
         return await res.json();
     };
 
-    // اعتبارسنجی ساده شماره موبایل
     const validatePhone = (value) => {
         const regex = /^09\d{9}$/;
         if (!value) {
@@ -84,7 +95,6 @@ const LoginFlow = () => {
         return "";
     };
 
-    // هندلر مرحله شماره موبایل
     const handlePhoneSubmit = (e) => {
         e.preventDefault();
         const error = validatePhone(phone);
@@ -92,11 +102,9 @@ const LoginFlow = () => {
             setPhoneError(error);
         } else {
             setPhoneError("");
-            // شماره موبایل معتبر است؛ کاربر باید یکی از دو گزینه انتخاب کند
         }
     };
 
-    // هندلر ورود با پسورد
     const handlePasswordSubmit = async (e) => {
         e.preventDefault();
         if (!password) {
@@ -108,14 +116,12 @@ const LoginFlow = () => {
             toast.success("ورود موفقیت آمیز بود", ToastReaction.success);
             localStorage.setItem("auth_token", res.token);
             localStorage.setItem("auth_user", JSON.stringify(res.user));
-
-            window.location.href = "/";
+            router.push('/');
         } else {
             toast.error("پسورد اشتباه است", ToastReaction.error);
         }
     };
 
-    // هندلر تایید OTP برای ورود با کد یکبار مصرف
     const handleOtpSubmit = async (e) => {
         e.preventDefault();
         if (otp.length !== 6) {
@@ -123,15 +129,19 @@ const LoginFlow = () => {
             return;
         }
         const res = await verifyOtp(otp);
-        if (res.status && res.userExisted) {
-            toast.success("ورود موفق", ToastReaction.success);
-            // ریدایرکت به داشبورد
+        if (res.status) {
+            if (res.userExisted) {
+                toast.success("ورود موفقیت آمیز بود", ToastReaction.success);
+                localStorage.setItem("auth_token", res.token);
+                router.push('/');
+            } else {
+                setStep("register");
+            }
         } else {
-            setStep("register");
+            toast.error(res.message || "کد وارد شده نادرست است", ToastReaction.error);
         }
     };
 
-    // هندلر تایید OTP برای فراموشی رمز عبور (forgot)
     const handleForgotOtpSubmit = async (e) => {
         e.preventDefault();
         if (otp.length !== 6) {
@@ -152,7 +162,6 @@ const LoginFlow = () => {
         }
     };
 
-    // هندلر تغییر رمز عبور
     const handleChangePassword = async (e) => {
         e.preventDefault();
         if (!newPassword || newPassword.length < 6) {
@@ -167,32 +176,45 @@ const LoginFlow = () => {
         if (res.status) {
             toast.success("رمزعبور با موفقیت تغییر یافت", ToastReaction.success);
             setStep("phone");
+            router.push('/login'); // بازگشت به صفحه ورود
         } else {
             toast.error("خطا در تغییر رمزعبور", ToastReaction.error);
         }
     };
 
-    // هندلر ثبت نام
     const handleRegister = async (e) => {
         e.preventDefault();
         if (!registerData.name || !registerData.family || !registerData.email || !registerData.password) {
             toast.error("لطفاً تمامی موارد را وارد کنید", ToastReaction.error);
             return;
         }
-        if (registerData.password.length < 6) {
-            toast.error("پسورد حداقل 6 کاراکتر باید باشد", ToastReaction.error);
+        if (registerData.password.length < 8) {
+            toast.error("پسورد حداقل 8 کاراکتر باید باشد", ToastReaction.error);
             return;
         }
         const res = await userRegister();
         if (res.status) {
             toast.success("ثبت نام موفق", ToastReaction.success);
-
             localStorage.setItem("auth_token", res.token);
             localStorage.setItem("auth_user", JSON.stringify(res.user));
-
-            window.location.href = "/";
+            router.push('/');
         } else {
-            toast.error("خطا در ثبت نام", ToastReaction.error);
+            if (res.errors) {
+                const errorMessages = [];
+                if (res.errors.email && res.errors.email.length > 0) {
+                    errorMessages.push(`ایمیل: ${res.errors.email.join("، ")}`);
+                }
+                if (res.errors.password && res.errors.password.length > 0) {
+                    errorMessages.push(`پسورد: ${res.errors.password.join("، ")}`);
+                }
+                if (errorMessages.length > 0) {
+                    toast.error(errorMessages.join(" | "), ToastReaction.error);
+                } else {
+                    toast.error(res.message || "خطا در ثبت نام", ToastReaction.error);
+                }
+            } else {
+                toast.error(res.message || "خطا در ثبت نام", ToastReaction.error);
+            }
         }
     };
 
