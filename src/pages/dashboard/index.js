@@ -1,5 +1,5 @@
 import DashboardKarbar from "../../../components/DashboardKarbar/DashboardKarbar";
 
-export default function Home() {
+export default function DashboardPage() {
   return <DashboardKarbar />;
 }
