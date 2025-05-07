@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { FaTree, FaHome, FaInfoCircle, FaRegNewspaper, FaEnvelope } from "react-icons/fa";
+import {
+    FaTree,
+    FaHome,
+    FaInfoCircle,
+    FaRegNewspaper,
+    FaEnvelope,
+    FaChartBar, // آیکون برای گزارش
+    FaBullhorn, // آیکون برای کمپین
+} from "react-icons/fa";
 import styles from "./Header.module.css";
 
 const Header = () => {
@@ -43,16 +51,28 @@ const Header = () => {
 
                 <nav className={`${styles.nav} ${menuOpen ? styles.open : ""}`}>
                     <a href="/" onClick={() => setMenuOpen(false)}>
-                        <span>خانه</span><FaHome className={styles.navIcon} />
+                        <span>خانه</span>
+                        <FaHome className={styles.navIcon} />
                     </a>
                     <a href="/about_page" onClick={() => setMenuOpen(false)}>
-                        <span>درباره ما</span><FaInfoCircle className={styles.navIcon} />
+                        <span>درباره ما</span>
+                        <FaInfoCircle className={styles.navIcon} />
                     </a>
                     <a href="/blog" onClick={() => setMenuOpen(false)}>
-                        <span>بلاگ</span><FaRegNewspaper className={styles.navIcon} />
+                        <span>بلاگ</span>
+                        <FaRegNewspaper className={styles.navIcon} />
+                    </a>
+                    <a href="/reports" onClick={() => setMenuOpen(false)}>
+                        <span>گزارش</span>
+                        <FaChartBar className={styles.navIcon} />
+                    </a>
+                    <a href="/campaigns" onClick={() => setMenuOpen(false)}>
+                        <span>کمپین</span>
+                        <FaBullhorn className={styles.navIcon} />
                     </a>
                     <a href="/contact_page" onClick={() => setMenuOpen(false)}>
-                        <span>تماس با ما</span><FaEnvelope className={styles.navIcon} />
+                        <span>تماس با ما</span>
+                        <FaEnvelope className={styles.navIcon} />
                     </a>
                 </nav>
 
@@ -67,13 +87,19 @@ const Header = () => {
                             </button>
                             {dropdownOpen && (
                                 <ul className={styles.dropdown}>
-                                    <li><a href="/dashboard">پنل کاربری</a></li>
-                                    <li><button onClick={logout}>خروج</button></li>
+                                    <li>
+                                        <a href="/dashboard">پنل کاربری</a>
+                                    </li>
+                                    <li>
+                                        <button onClick={logout}>خروج</button>
+                                    </li>
                                 </ul>
                             )}
                         </div>
                     ) : (
-                        <a href="/login" className={styles.authBtn}>ورود | ثبت نام</a>
+                        <a href="/login" className={styles.authBtn}>
+                            ورود | ثبت نام
+                        </a>
                     )}
                 </div>
 
