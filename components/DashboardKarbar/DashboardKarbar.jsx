@@ -5,18 +5,15 @@ import {
     FaStar,
     FaUserEdit,
     FaSignOutAlt,
-    FaPen
 } from 'react-icons/fa';
 import styles from './DashboardKarbar.module.css';
-import Reports from './Reports';
-import Campaigns from './Campaigns';
+import Campaigns from './CampaignsUser';
 import Stats from './Stats';
 import Profile from './Profile';
 import GetReports from './GetReports';
 
 // بخش‌های داشبورد
 const sections = [
-    { key: 'reports', label: 'ثبت گزارش', icon: FaPen },
     { key: 'Getreports', label: 'گزارش‌ها', icon: FaFileAlt },
     { key: 'campaigns', label: 'کمپین‌ها', icon: FaBullhorn },
     { key: 'stats', label: 'امتیازات', icon: FaStar },
@@ -24,7 +21,7 @@ const sections = [
 ];
 
 const DashboardKarbar = () => {
-    const [active, setActive] = useState('reports');
+    const [active, setActive] = useState('Getreports');
 
     const handleLogout = () => {
         window.location.href = '/';
@@ -55,7 +52,6 @@ const DashboardKarbar = () => {
                 </ul>
             </aside>
             <main className={styles.content}>
-                {active === 'reports' && <Reports />}
                 {active === 'Getreports' && <GetReports />}
                 {active === 'campaigns' && <Campaigns />}
                 {active === 'stats' && <Stats />}
