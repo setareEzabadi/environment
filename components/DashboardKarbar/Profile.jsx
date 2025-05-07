@@ -33,6 +33,7 @@ const Profile = () => {
                 if (!json.status) throw new Error('خطا در دریافت پروفایل');
                 const u = json.data;
                 setName(u.name || '');
+                setFamily(u.family || '');
                 setEmail(u.email || '');
                 setNationalCode(u.national_code || '');
                 setOrganization(u.organization || '');
