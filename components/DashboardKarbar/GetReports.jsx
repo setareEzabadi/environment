@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import styles from './DashboardKarbar.module.css';
 import env from '../../env';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { FaQuestionCircle, FaTrash } from 'react-icons/fa';
 
 const GetReports = () => {
     const [reports, setReports] = useState([]);
@@ -10,176 +13,241 @@ const GetReports = () => {
     const [isAdmin, setIsAdmin] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, links: [] });
+    const [showHelp, setShowHelp] = useState(false);
 
-    // Fetch reports and categories on mount
+    // تابع بررسی نقش کاربر
+    const checkUserRole = () => {
+        const userData = localStorage.getItem('auth_user');
+        if (userData) {
+            try {
+                const parsedUser = JSON.parse(userData);
+                const isAdminUser = parsedUser.role && parsedUser.role.toLowerCase() === 'admin';
+                setIsAdmin(isAdminUser);
+            } catch (err) {
+                console.error('خطا در پارس داده کاربر:', err);
+                setIsAdmin(false);
+                setError('خطا در بارگذاری اطلاعات کاربر');
+                toast.error('خطا در بارگذاری اطلاعات کاربر');
+            }
+        } else {
+            setIsAdmin(false);
+        }
+    };
+
+    // تابع کمکی برای ارسال درخواست‌ها
+    const sendRequest = async (url, method = 'GET', body = null) => {
+        const token = localStorage.getItem('auth_token');
+        if (!token) throw new Error('توکن احراز هویت یافت نشد');
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        };
+
+        const options = { method, headers };
+        if (body) options.body = JSON.stringify(body);
+
+        const response = await fetch(url, options);
+        const result = await response.json();
+
+        if (!response.ok) throw new Error(result.message || `خطای HTTP! وضعیت: ${response.status}`);
+        return result;
+    };
+
     useEffect(() => {
         fetchReports();
         fetchCategories();
-        const userRole = localStorage.getItem('userRole'); // Replace with actual auth logic
-        setIsAdmin(userRole === 'admin');
+        checkUserRole();
     }, []);
 
-    // Fetch all reports
     const fetchReports = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${env.baseUrl}api/getReports`);
-            const result = await response.json();
-            if (result.status) {
-                setReports(result.data);
-            } else {
-                setError('خطا در دریافت گزارش‌ها');
-            }
+            const result = await sendRequest(`${env.baseUrl}api/user/reports`);
+            setReports(Array.isArray(result.data) ? result.data : []);
+            setPagination({ current_page: 1, last_page: 1, links: [] });
+            toast.success('گزارش‌ها با موفقیت دریافت شدند');
         } catch (err) {
-            setError('خطا در ارتباط با سرور');
+            setError(err.message || 'خطا در دریافت گزارش‌ها');
+            setReports([]);
+            toast.error(err.message || 'خطا در دریافت گزارش‌ها');
         } finally {
             setLoading(false);
         }
     };
 
-    // Fetch categories
     const fetchCategories = async () => {
         try {
-            const response = await fetch(`${env.baseUrl}api/getCategories`);
-            const result = await response.json();
-            if (result.status) {
-                setCategories(result.data);
-            }
+            const result = await sendRequest(`${env.baseUrl}api/getCategories`);
+            setCategories(Array.isArray(result.data) ? result.data : []);
+            toast.success('دسته‌بندی‌ها با موفقیت دریافت شدند');
         } catch (err) {
-            console.error('Error fetching categories:', err);
+            setError(err.message || 'خطا در دریافت دسته‌بندی‌ها');
+            toast.error(err.message || 'خطا در دریافت دسته‌بندی‌ها');
         }
     };
 
-    // Update report status (admin only)
     const updateStatus = async (reportId, newStatus) => {
         try {
-            const response = await fetch(`${env.baseUrl}api/updateStatus`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ report_id: reportId, status: newStatus }),
+            const result = await sendRequest(`${env.baseUrl}api/updateStatus`, 'POST', {
+                report_id: reportId,
+                status: newStatus,
             });
-            const result = await response.json();
-            if (result.status) {
-                setReports(reports.map(report =>
-                    report.id === reportId ? { ...report, status: newStatus } : report
-                ));
-            } else {
-                setError('خطا در به‌روزرسانی وضعیت');
-            }
+            setReports(reports.map((report) =>
+                report.id === reportId ? { ...report, status: newStatus } : report
+            ));
+            toast.success('وضعیت گزارش با موفقیت به‌روزرسانی شد');
         } catch (err) {
-            setError('خطا در ارتباط با سرور');
+            toast.error(err.message || 'خطا در به‌روزرسانی وضعیت');
         }
     };
 
-    // Delete report (admin only)
     const deleteReport = async (reportId) => {
         if (!window.confirm('آیا مطمئن هستید که می‌خواهید این گزارش را حذف کنید؟')) return;
         try {
-            const response = await fetch(`${env.baseUrl}api/deleteReport`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ report_id: reportId }),
+            const result = await sendRequest(`${env.baseUrl}api/deleteReport`, 'POST', {
+                report_id: reportId,
             });
-            const result = await response.json();
-            if (result.status) {
-                setReports(reports.filter(report => report.id !== reportId));
-            } else {
-                setError('خطا در حذف گزارش');
-            }
+            setReports(reports.filter((report) => report.id !== reportId));
+            toast.success('گزارش با موفقیت حذف شد');
         } catch (err) {
-            setError('خطا در ارتباط با سرور');
+            toast.error(err.message || 'خطا در حذف گزارش');
         }
     };
 
-    // Handle filter change
-    const handleFilterChange = (e) => {
-        const { name, value } = e.target;
-        setFilters(prev => ({ ...prev, [name]: value }));
+    const storeReportAssistance = async (reportId) => {
+        try {
+            const result = await sendRequest(`${env.baseUrl}api/storeReportAssistance`, 'POST', {
+                report_id: reportId,
+            });
+            toast.success('کمک به گزارش ثبت شد');
+        } catch (err) {
+            toast.error(err.message || 'خطا در ثبت کمک');
+        }
     };
 
-    // Fetch filtered reports
-    const fetchFilteredReports = async () => {
+    const deleteReportAssistance = async (reportId) => {
+        try {
+            const result = await sendRequest(`${env.baseUrl}api/deleteReportAssistance`, 'POST', {
+                report_id: reportId,
+            });
+            toast.success('کمک از گزارش حذف شد');
+        } catch (err) {
+            toast.error(err.message || 'خطا در حذف کمک');
+        }
+    };
+
+    const handleFilterChange = (e) => {
+        const { name, value } = e.target;
+        setFilters((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const fetchFilteredReports = async (page = 1) => {
         setLoading(true);
         try {
-            const url = `${env.baseUrl}api/reports/filter?status=${filters.status}&category_id=${filters.category_id}&sort=${filters.sort}`;
-            const response = await fetch(url);
-            const result = await response.json();
-            if (result.status) {
-                setReports(result.data);
-            } else {
-                setError('خطا در فیلتر گزارش‌ها');
-            }
+            const url = new URL(`${env.baseUrl}api/reports/filter`);
+            url.searchParams.append('page', page);
+            if (filters.status) url.searchParams.append('status', filters.status);
+            if (filters.category_id) url.searchParams.append('category_id', filters.category_id);
+            url.searchParams.append('sort', filters.sort);
+
+            const result = await sendRequest(url.toString());
+            setReports(Array.isArray(result.data) ? result.data : []);
+            setPagination({
+                current_page: result.current_page || 1,
+                last_page: result.last_page || 1,
+                links: result.links || [],
+            });
+            toast.success('گزارش‌های فیلترشده با موفقیت دریافت شدند');
         } catch (err) {
-            setError('خطا در ارتباط با سرور');
+            setError(err.message || 'خطا در فیلتر گزارش‌ها');
+            setReports([]);
+            setPagination({ current_page: 1, last_page: 1, links: [] });
+            toast.error(err.message || 'خطا در فیلتر گزارش‌ها');
         } finally {
             setLoading(false);
         }
     };
 
-    // Handle image upload
-    const handleImageUpload = async (reportId, file) => {
-        const formData = new FormData();
-        formData.append('report_id', reportId);
-        formData.append('report_image', file);
-        try {
-            const response = await fetch(`${env.baseUrl}api/recordReportImage`, {
-                method: 'POST',
-                body: formData,
-            });
-            const result = await response.json();
-            if (result.status) {
-                alert('تصویر با موفقیت آپلود شد');
-            } else {
-                setError('خطا در آپلود تصویر');
-            }
-        } catch (err) {
-            setError('خطا در ارتباط با سرور');
-        }
-    };
-
-    // Add new category
     const addCategory = async () => {
-        if (!newCategory) return;
+        if (!newCategory) {
+            toast.error('نام دسته‌بندی را وارد کنید');
+            return;
+        }
         try {
-            const response = await fetch(`${env.baseUrl}api/storeCategory`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: newCategory }),
+            const result = await sendRequest(`${env.baseUrl}api/storeCategory`, 'POST', {
+                name: newCategory,
             });
-            const result = await response.json();
-            if (result.status) {
-                setCategories([...categories, { id: result.data.id, name: newCategory }]);
-                setNewCategory('');
-            } else {
-                setError('خطا در افزودن دسته‌بندی');
-            }
+            setCategories([...categories, { id: result.category.id, name: newCategory }]);
+            setNewCategory('');
+            toast.success('دسته‌بندی با موفقیت اضافه شد');
         } catch (err) {
-            setError('خطا در ارتباط با سرور');
+            toast.error(err.message || 'خطا در افزودن دسته‌بندی');
         }
     };
 
-    // Delete category
     const deleteCategory = async (categoryId) => {
         try {
-            const response = await fetch(`${env.baseUrl}api/deleteCategory`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ category_id: categoryId }),
+            const result = await sendRequest(`${env.baseUrl}api/deleteCategory`, 'POST', {
+                category_id: categoryId,
             });
-            const result = await response.json();
-            if (result.status) {
-                setCategories(categories.filter(cat => cat.id !== categoryId));
-            } else {
-                setError('خطا در حذف دسته‌بندی');
-            }
+            setCategories(categories.filter((cat) => cat.id !== categoryId));
+            toast.success('دسته‌بندی با موفقیت حذف شد');
         } catch (err) {
-            setError('خطا در ارتباط با سرور');
+            toast.error(err.message || 'خطا در حذف دسته‌بندی');
         }
+    };
+
+    const handlePageChange = (pageUrl) => {
+        if (!pageUrl) return;
+        const page = new URL(pageUrl).searchParams.get('page');
+        fetchFilteredReports(page);
     };
 
     return (
         <div className={styles.getReports}>
-            <h3>مدیریت گزارش‌ها</h3>
+            <ToastContainer rtl position="bottom-right" autoClose={3000} />
+            <div className={styles.header}>
+                <h3>مدیریت گزارش‌ها</h3>
+                <button
+                    onClick={() => setShowHelp(!showHelp)}
+                    className={styles.helpButton}
+                    title="راهنما"
+                >
+                    <FaQuestionCircle />
+                </button>
+            </div>
+            {showHelp && (
+                <div className={styles.helpSection}>
+                    <h4>راهنمای استفاده</h4>
+                    <p>
+                        در این صفحه می‌توانید گزارش‌های ثبت‌شده را مشاهده و مدیریت کنید. اگر
+                        ادمین هستید، می‌توانید:
+                    </p>
+                    <ul>
+                        <li>
+                            <strong>فیلتر گزارش‌ها:</strong> از فیلترهای بالا برای جستجوی گزارش‌ها
+                            بر اساس وضعیت، دسته‌بندی، یا ترتیب استفاده کنید.
+                        </li>
+                        <li>
+                            <strong>مدیریت دسته‌بندی‌ها:</strong> دسته‌بندی‌های جدید اضافه کنید یا
+                            دسته‌بندی‌های موجود را حذف کنید.
+                        </li>
+                        <li>
+                            <strong>تغییر وضعیت:</strong> وضعیت گزارش‌ها را به «در انتظار»، «در حال
+                            انجام»، یا «حل‌شده» تغییر دهید.
+                        </li>
+                        <li>
+                            <strong>حذف گزارش:</strong> گزارش‌های غیرضروری را حذف کنید.
+                        </li>
+                    </ul>
+                    <p>
+                        اگر کاربر عادی هستید، فقط می‌توانید گزارش‌های خود را مشاهده کنید و امکان
+                        ویرایش یا حذف آن‌ها را ندارید.
+                    </p>
+                </div>
+            )}
             {error && <span className={styles.error}>{error}</span>}
 
             {/* Filter Section */}
@@ -187,20 +255,22 @@ const GetReports = () => {
                 <select name="status" value={filters.status} onChange={handleFilterChange}>
                     <option value="">همه وضعیت‌ها</option>
                     <option value="pending">در انتظار</option>
-                    <option value="reviewed">بررسی‌شده</option>
+                    <option value="in_progress">در حال انجام</option>
                     <option value="resolved">حل‌شده</option>
                 </select>
                 <select name="category_id" value={filters.category_id} onChange={handleFilterChange}>
                     <option value="">همه دسته‌بندی‌ها</option>
-                    {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                        </option>
                     ))}
                 </select>
                 <select name="sort" value={filters.sort} onChange={handleFilterChange}>
                     <option value="latest">جدیدترین</option>
                     <option value="oldest">قدیمی‌ترین</option>
                 </select>
-                <button onClick={fetchFilteredReports} className={styles.searchBtn}>
+                <button onClick={() => fetchFilteredReports(1)} className={styles.searchBtn}>
                     جستجو
                 </button>
             </div>
@@ -219,10 +289,13 @@ const GetReports = () => {
                         <button onClick={addCategory}>افزودن دسته‌بندی</button>
                     </div>
                     <ul className={styles.categoryList}>
-                        {categories.map(cat => (
+                        {categories.map((cat) => (
                             <li key={cat.id}>
                                 <span>{cat.name}</span>
-                                <button onClick={() => deleteCategory(cat.id)} className={styles.deleteBtn}>
+                                <button
+                                    onClick={() => deleteCategory(cat.id)}
+                                    className={styles.deleteBtn}
+                                >
                                     حذف
                                 </button>
                             </li>
@@ -239,10 +312,10 @@ const GetReports = () => {
                     {reports.length === 0 ? (
                         <p className={styles.noReports}>گزارشی یافت نشد</p>
                     ) : (
-                        reports.map(report => (
+                        reports.map((report) => (
                             <div key={report.id} className={styles.reportCard}>
                                 <div className={styles.reportHeader}>
-                                    <h4>{report.title}</h4>
+                                    <h4>{report.title || 'بدون عنوان'}</h4>
                                     {isAdmin && (
                                         <button
                                             onClick={() => deleteReport(report.id)}
@@ -252,34 +325,91 @@ const GetReports = () => {
                                         </button>
                                     )}
                                 </div>
-                                <p className={styles.description}>{report.description}</p>
-                                <p>موقعیت: {report.lat}, {report.long}</p>
-                                <p>وضعیت: {report.status === 'pending' ? 'در انتظار' : report.status === 'reviewed' ? 'بررسی‌شده' : 'حل‌شده'}</p>
-                                <p>تاریخ: {new Date(report.created_at).toLocaleDateString('fa-IR')}</p>
+                                <p className={styles.description}>
+                                    {report.description || 'بدون توضیحات'}
+                                </p>
+                                <p>دسته‌بندی: {report.category?.name || 'نامشخص'}</p>
+                                <p>مکان: {report.location || 'نامشخص'}</p>
+                                <p>موقعیت جغرافیایی: {report.lat}, {report.long}</p>
+                                <p>منطقه: {report.region?.name || report.region_id || 'نامشخص'}</p>
+                                <p>
+                                    وضعیت:{' '}
+                                    {report.status === 'pending'
+                                        ? 'در انتظار'
+                                        : report.status === 'in_progress'
+                                            ? 'در حال انجام'
+                                            : 'حل‌شده'}
+                                </p>
+                                <p>
+                                    تاریخ ایجاد:{' '}
+                                    {new Date(report.created_at).toLocaleDateString('fa-IR')}
+                                </p>
+                                <div className={styles.images}>
+                                    <p>تصاویر:</p>
+                                    {report.images && report.images.length > 0 ? (
+                                        <div className={styles.imageGallery}>
+                                            {report.images.map((image) => (
+                                                <img
+                                                    key={image.id}
+                                                    src={`${env.baseUrl}${image.image_url}`}
+                                                    alt={`تصویر گزارش ${report.id}`}
+                                                    className={styles.reportImage}
+                                                />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p>بدون تصویر</p>
+                                    )}
+                                </div>
 
-                                {/* Status Update for Admins */}
                                 {isAdmin && (
-                                    <select
-                                        value={report.status}
-                                        onChange={(e) => updateStatus(report.id, e.target.value)}
-                                        className={styles.statusSelect}
-                                    >
-                                        <option value="pending">در انتظار</option>
-                                        <option value="reviewed">بررسی‌شده</option>
-                                        <option value="resolved">حل‌شده</option>
-                                    </select>
+                                    <div className={styles.adminActions}>
+                                        <select
+                                            value={report.status}
+                                            onChange={(e) => updateStatus(report.id, e.target.value)}
+                                            className={styles.statusSelect}
+                                        >
+                                            <option value="pending">در انتظار</option>
+                                            <option value="in_progress">در حال انجام</option>
+                                            <option value="resolved">حل‌شده</option>
+                                        </select>
+                                        <button
+                                            onClick={() => storeReportAssistance(report.id)}
+                                            className={styles.assistanceBtn}
+                                        >
+                                            افزودن کمک
+                                        </button>
+                                        <button
+                                            onClick={() => deleteReportAssistance(report.id)}
+                                            className={styles.deleteAssistanceBtn}
+                                        >
+                                            حذف کمک
+                                        </button>
+                                    </div>
                                 )}
-
-                                {/* Image Upload */}
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => handleImageUpload(report.id, e.target.files[0])}
-                                    className={styles.fileInput}
-                                />
                             </div>
                         ))
                     )}
+                </div>
+            )}
+
+            {/* Pagination */}
+            {reports.length > 0 && pagination.links.length > 0 && (
+                <div className={styles.pagination}>
+                    {pagination.links.map((link, index) => (
+                        <button
+                            key={index}
+                            onClick={() => handlePageChange(link.url)}
+                            disabled={!link.url}
+                            className={link.active ? styles.activePage : ''}
+                        >
+                            {link.label === '« Previous'
+                                ? 'قبلی'
+                                : link.label === 'Next »'
+                                    ? 'بعدی'
+                                    : link.label}
+                        </button>
+                    ))}
                 </div>
             )}
         </div>
