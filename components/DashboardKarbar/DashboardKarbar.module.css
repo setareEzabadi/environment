@@ -306,6 +306,43 @@
   box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.1);
 }
 
+/* Avatar Container */
+.avatarContainer {
+  display: flex;
+  justify-content: center;
+}
+
+.avatarLabel {
+  display: block;
+  cursor: pointer;
+}
+
+.avatarPreview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px dashed #d1d5db;
+  margin: auto;
+}
+
+.avatarPlaceholder {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-color: #e5e7eb;
+  border: 2px dashed #d1d5db;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  color: #6b7280;
+}
+
+.avatarInput {
+  display: none;
+}
+
 /* ریسپانسیو */
 @media (max-width: 480px) {
   .profile {
