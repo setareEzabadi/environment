@@ -5,8 +5,8 @@ import {
     FaInfoCircle,
     FaRegNewspaper,
     FaEnvelope,
-    FaChartBar, // آیکون برای گزارش
-    FaBullhorn, // آیکون برای کمپین
+    FaChartBar,
+    FaBullhorn,
 } from "react-icons/fa";
 import styles from "./Header.module.css";
 
@@ -20,10 +20,13 @@ const Header = () => {
         const storedUser = localStorage.getItem("auth_user");
         if (storedUser) {
             setUser(JSON.parse(storedUser));
+            const referrer = document.referrer;
+            if (referrer.includes("/login")) {
+                window.location.reload();
+            }
         }
     }, []);
 
-    // بستن دراپ‌داون با کلیک بیرون
     useEffect(() => {
         const handler = (e) => {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -35,10 +38,14 @@ const Header = () => {
     }, []);
 
     const toggleMenu = () => setMenuOpen((p) => !p);
+
     const logout = () => {
         localStorage.removeItem("auth_token");
         localStorage.removeItem("auth_user");
         window.location.href = "/";
+        setTimeout(() => {
+            window.location.reload();
+        }, 100);
     };
 
     return (
