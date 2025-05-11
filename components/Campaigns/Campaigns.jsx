@@ -8,7 +8,7 @@ import { FaTrash, FaEdit } from 'react-icons/fa';
 const Campaigns = () => {
     const [campaigns, setCampaigns] = useState([]);
     const [statuses, setStatuses] = useState([]);
-    const [selectedStatus, setSelectedStatus] = useState(3); // پیش‌فرض status_id=3
+    const [selectedStatus, setSelectedStatus] = useState('');
     const [selectedCampaign, setSelectedCampaign] = useState(null);
     const [participants, setParticipants] = useState([]);
     const [formData, setFormData] = useState({
@@ -64,7 +64,8 @@ const Campaigns = () => {
     // دریافت لیست کمپین‌ها با فیلتر
     const fetchCampaigns = async () => {
         try {
-            const result = await sendRequest(`${env.baseUrl}api/CampaignFillter?status_id=${selectedStatus}`);
+            const statusFilter = selectedStatus ? `?status_id=${selectedStatus}` : '';
+            const result = await sendRequest(`${env.baseUrl}api/CampaignFillter${statusFilter}`);
             setCampaigns(Array.isArray(result.data) ? result.data : []);
             toast.success('کمپین‌ها با موفقیت دریافت شدند');
         } catch (err) {
@@ -77,7 +78,9 @@ const Campaigns = () => {
     const fetchStatuses = async () => {
         try {
             const result = await sendRequest(`${env.baseUrl}api/campaign-statuses`);
-            setStatuses(Array.isArray(result.data) ? result.data : []);
+            const statusesData = Array.isArray(result.data) ? result.data : [];
+            setStatuses(statusesData);
+            console.log('Statuses:', statusesData); // لاگ برای دیباگ
         } catch (err) {
             console.error('خطا در دریافت وضعیت‌ها:', err);
             toast.error(err.message || 'خطا در دریافت وضعیت‌ها');
@@ -139,6 +142,11 @@ const Campaigns = () => {
             await sendRequest(`${env.baseUrl}api/updateCampaign`, 'POST', {
                 campaign_id: editCampaignId,
                 title: formData.title,
+                description: formData.description,
+                status_id: formData.status_id,
+                start_date: formData.start_date,
+                end_date: formData.end_date,
+                location: formData.location,
             });
             fetchAllCampaigns();
             setEditCampaignId(null);
@@ -255,15 +263,20 @@ const Campaigns = () => {
                                 <select
                                     value={selectedStatus}
                                     onChange={(e) => setSelectedStatus(e.target.value)}
+                                    className={styles.filterSelect}
                                 >
                                     <option value="">همه وضعیت‌ها</option>
-                                    {statuses.map((status) => (
-                                        <option key={status.id} value={status.id}>
-                                            {status.name}
-                                        </option>
-                                    ))}
+                                    {statuses.length > 0 ? (
+                                        statuses.map((status) => (
+                                            <option key={status.id} value={status.id}>
+                                                {status.status}
+                                            </option>
+                                        ))
+                                    ) : (
+                                        <option disabled>در حال بارگذاری...</option>
+                                    )}
                                 </select>
-                                <button onClick={fetchAllCampaigns} className={styles.searchBtn}>
+                                <button onClick={fetchCampaigns} className={styles.searchBtn}>
                                     جستجو
                                 </button>
                             </div>
@@ -283,7 +296,7 @@ const Campaigns = () => {
                                             <p>محل: {campaign.location || 'نامشخص'}</p>
                                             <p>شروع: {new Date(campaign.start_date).toLocaleDateString('fa-IR')}</p>
                                             <p>پایان: {new Date(campaign.end_date).toLocaleDateString('fa-IR')}</p>
-                                            <p>وضعیت: {campaign.status?.name || 'نامشخص'}</p>
+                                            <p>وضعیت: {campaign.status?.status || 'نامشخص'}</p>
                                             <div className={styles.actions}>
                                                 <button
                                                     onClick={() => fetchCampaignDetails(campaign.id)}
@@ -364,7 +377,7 @@ const Campaigns = () => {
                                 <h3>جزئیات کمپین: {selectedCampaign.title}</h3>
                                 <p>{selectedCampaign.description || 'بدون توضیحات'}</p>
                                 <p>محل: {selectedCampaign.location || 'نامشخص'}</p>
-                                <p>وضعیت: {selectedCampaign.status?.name || 'نامشخص'}</p>
+                                <p>وضعیت: {selectedCampaign.status?.status || 'نامشخص'}</p>
                                 <p>شروع: {new Date(selectedCampaign.start_date).toLocaleDateString('fa-IR')}</p>
                                 <p>پایان: {new Date(selectedCampaign.end_date).toLocaleDateString('fa-IR')}</p>
                             </section>
@@ -416,7 +429,7 @@ const Campaigns = () => {
                                     <option value="">انتخاب کنید</option>
                                     {statuses.map((status) => (
                                         <option key={status.id} value={status.id}>
-                                            {status.name}
+                                            {status.status}
                                         </option>
                                     ))}
                                 </select>
