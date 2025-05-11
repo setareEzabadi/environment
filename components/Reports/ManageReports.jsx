@@ -194,7 +194,7 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
         }
 
         try {
-            const response = await fetch(`${env.baseUrl}api/deleteReport`, {
+            const response = await fetch(`${env.baseUrl}api/destroyReport`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${token}`,
