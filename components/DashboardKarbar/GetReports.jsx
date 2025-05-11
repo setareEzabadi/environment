@@ -106,7 +106,7 @@ const GetReports = () => {
     const deleteReport = async (reportId) => {
         if (!window.confirm('آیا مطمئن هستید که می‌خواهید این گزارش را حذف کنید؟')) return;
         try {
-            const result = await sendRequest(`${env.baseUrl}api/deleteReport`, 'POST', {
+            const result = await sendRequest(`${env.baseUrl}api/destroyReport`, 'POST', {
                 report_id: reportId,
             });
             setReports(reports.filter((report) => report.id !== reportId));
