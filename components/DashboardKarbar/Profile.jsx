@@ -13,12 +13,13 @@ const Profile = () => {
     const [nationalCode, setNationalCode] = useState('');
     const [organization, setOrganization] = useState('');
     const [avatarFile, setAvatarFile] = useState(null);
+    const [avatarUrl, setAvatarUrl] = useState('');
     const [isAdmin, setIsAdmin] = useState(false);
     const [phone, setPhone] = useState('');
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [otpSent, setOtpSent] = useState(false);
     const [otpLoading, setOtpLoading] = useState(false);
-    const [activeSection, setActiveSection] = useState('personal'); // حالت برای کنترل بخش فعال
+    const [activeSection, setActiveSection] = useState('personal');
     const router = useRouter();
 
     useEffect(() => {
@@ -37,6 +38,7 @@ const Profile = () => {
                 setEmail(u.email || '');
                 setNationalCode(u.national_code || '');
                 setOrganization(u.organization || '');
+                setAvatarUrl(u.avatar ? `${env.baseUrl}${u.avatar}` : '');
                 setIsAdmin(u.role === 'admin');
             })
             .catch(err => {
@@ -68,6 +70,9 @@ const Profile = () => {
             .then(json => {
                 if (json.status) {
                     toast.success('پروفایل با موفقیت بروزرسانی شد');
+                    if (json.data && json.data.avatar) {
+                        setAvatarUrl(`${env.baseUrl}${json.data.avatar}`);
+                    }
                 } else {
                     toast.error('خطا در بروزرسانی پروفایل');
                 }
@@ -195,48 +200,31 @@ const Profile = () => {
                 <div className={`${styles.section} ${styles.fadeIn}`}>
                     <h3>اطلاعات شخصی</h3>
                     <form className={styles.form} onSubmit={handleSubmit}>
-                        <label>
-                            نام
+                        <div className={styles.avatarContainer}>
+                            <label htmlFor="avatarInput" className={styles.avatarLabel}>
+                                {avatarFile ? (
+                                    <img
+                                        src={URL.createObjectURL(avatarFile)}
+                                        alt="آواتار"
+                                        className={styles.avatarPreview}
+                                    />
+                                ) : avatarUrl ? (
+                                    <img
+                                        src={avatarUrl}
+                                        alt="آواتار"
+                                        className={styles.avatarPreview}
+                                    />
+                                ) : (
+                                    <div className={styles.avatarPlaceholder}>
+                                        <span>+</span>
+                                    </div>
+                                )}
+                            </label>
                             <input
-                                type="text"
-                                value={name}
-                                onChange={e => setName(e.target.value)}
-                                required
-                            />
-                        </label>
-                        <label>
-                            نام خانوادگی
-                            <input
-                                type="text"
-                                value={family}
-                                onChange={e => setFamily(e.target.value)}
-                                required
-                            />
-                        </label>
-                        <label>
-                            ایمیل
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
-                                required
-                            />
-                        </label>
-                        <label>
-                            کد ملی
-                            <input
-                                type="text"
-                                value={nationalCode}
-                                onChange={e => setNationalCode(e.target.value)}
-                                required
-                            />
-                        </label>
-                        <label>
-                            آواتار
-                            <input
+                                id="avatarInput"
                                 type="file"
                                 accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml"
-                                onChange={e => {
+                                onChange={(e) => {
                                     const file = e.target.files[0];
                                     if (file && /^image\/(jpeg|png|jpg|gif|svg\+xml)$/.test(file.type)) {
                                         setAvatarFile(file);
@@ -245,6 +233,43 @@ const Profile = () => {
                                         toast.warn('لطفاً یک فایل تصویری معتبر انتخاب کنید');
                                     }
                                 }}
+                                className={styles.avatarInput}
+                            />
+                        </div>
+                        <label>
+                            نام
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                            />
+                        </label>
+                        <label>
+                            نام خانوادگی
+                            <input
+                                type="text"
+                                value={family}
+                                onChange={(e) => setFamily(e.target.value)}
+                                required
+                            />
+                        </label>
+                        <label>
+                            ایمیل
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </label>
+                        <label>
+                            کد ملی
+                            <input
+                                type="text"
+                                value={nationalCode}
+                                onChange={(e) => setNationalCode(e.target.value)}
+                                required
                             />
                         </label>
                         {isAdmin && (
@@ -253,7 +278,7 @@ const Profile = () => {
                                 <input
                                     type="text"
                                     value={organization}
-                                    onChange={e => setOrganization(e.target.value)}
+                                    onChange={(e) => setOrganization(e.target.value)}
                                 />
                             </label>
                         )}
