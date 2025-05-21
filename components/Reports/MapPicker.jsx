@@ -1,16 +1,26 @@
-import { MapContainer, TileLayer, useMapEvents, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap, useMapEvents, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import L from 'leaflet';
 
-delete L.Icon.Default.prototype._getIconUrl;
+// تنظیم آیکون‌های Leaflet با CDN
 L.Icon.Default.mergeOptions({
-    iconRetinaUrl: '/leaflet/marker-icon-2x.png',
-    iconUrl: '/leaflet/marker-icon.png',
-    shadowUrl: '/leaflet/marker-shadow.png',
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-const MapPicker = ({ onMapClick }) => {
+const MapUpdater = ({ center }) => {
+    const map = useMap();
+    useEffect(() => {
+        if (center) {
+            map.setView(center, 15); // زوم به سطح 15 برای آدرس خاص
+        }
+    }, [center, map]);
+    return null;
+};
+
+const MapPicker = ({ onMapClick, center }) => {
     const [position, setPosition] = useState(null);
 
     const MapClickHandler = () => {
@@ -25,11 +35,15 @@ const MapPicker = ({ onMapClick }) => {
 
     return (
         <MapContainer
-            center={[36.8392, 54.4342]}
-            zoom={12}
+            center={center || [36.8392, 54.4342]} // مرکز گرگان
+            zoom={9} // زوم برای پوشش کل گلستان
             style={{ height: '300px', width: '100%', marginTop: '1rem', borderRadius: '12px', overflow: 'hidden' }}
         >
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            />
+            <MapUpdater center={center} />
             <MapClickHandler />
         </MapContainer>
     );
