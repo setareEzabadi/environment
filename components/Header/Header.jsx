@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/router";
 import {
     FaTree,
     FaHome,
@@ -15,17 +16,35 @@ const Header = () => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [user, setUser] = useState(null);
     const dropdownRef = useRef();
+    const router = useRouter();
 
     useEffect(() => {
         const storedUser = localStorage.getItem("auth_user");
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-            const referrer = document.referrer;
-            if (referrer.includes("/login")) {
-                window.location.reload();
+        const fromLogin = localStorage.getItem("fromLogin");
+
+        console.log("Stored User:", storedUser);
+        console.log("From Login:", fromLogin);
+        console.log("Type of From Login:", typeof fromLogin);
+
+        if (storedUser && fromLogin === "true") {
+            console.log("Condition matched, attempting to reload...");
+            try {
+                setUser(JSON.parse(storedUser));
+                localStorage.removeItem("fromLogin");
+                setTimeout(() => {
+                    console.log("Reloading with router...");
+                    router.reload();
+                }, 100);
+            } catch (error) {
+                console.error("Error during reload process:", error);
+            }
+        } else {
+            console.log("Condition not matched:", { storedUser, fromLogin });
+            if (storedUser) {
+                setUser(JSON.parse(storedUser));
             }
         }
-    }, []);
+    }, [router]);
 
     useEffect(() => {
         const handler = (e) => {
