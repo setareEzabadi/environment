@@ -108,7 +108,7 @@ const Reports = () => {
                     className={`${styles.tab} ${activeTab === 'manageReports' ? styles.activeTab : ''}`}
                     onClick={() => setActiveTab('manageReports')}
                 >
-                    مدیریت گزارش‌ها
+                    {isAdmin ? 'مدیریت گزارش‌ها' : 'نمایش گزارش‌ها'}
                 </button>
             </div>
 
