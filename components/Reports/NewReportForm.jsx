@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import styles from './Reports.module.css';
 import env from '../../env';
@@ -20,10 +20,74 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
     const [images, setImages] = useState([]);
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [mapCenter, setMapCenter] = useState([36.8392, 54.4342]);
 
-    const handleChange = async (e) => {
+    // تابع Debounce
+    const debounce = (func, delay) => {
+        let timeoutId;
+        return (...args) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func(...args), delay);
+        };
+    };
+
+    // چک کردن محدوده گلستان
+    const isInGolestan = (lat, lon) => {
+        const latMin = 36.5;
+        const latMax = 37.8;
+        const lonMin = 53.8;
+        const lonMax = 56.2;
+        return lat >= latMin && lat <= latMax && lon >= lonMin && lon <= lonMax;
+    };
+
+    // تابع ژئوکدن محدود به گلستان
+    const geocodeAddress = useCallback(
+        debounce(async (address) => {
+            if (!address.trim()) return;
+            try {
+                const apiKey = '253caed1f6994bf8b01f3ab1061bd7e6'; // API Key تو
+                // محدود کردن سرچ به گلستان با bounding box
+                const response = await fetch(
+                    `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(address)}&format=json&apiKey=${apiKey}&filter=rect:53.8,36.5,56.2,37.8`
+                );
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                    const { lat, lon } = data.results[0];
+                    if (isInGolestan(lat, lon)) {
+                        setMapCenter([parseFloat(lat), parseFloat(lon)]);
+                        setFormData((prev) => ({
+                            ...prev,
+                            lat: lat.toString(),
+                            long: lon.toString(),
+                        }));
+                        setErrors((prev) => ({ ...prev, lat: '', long: '', map: '' }));
+                    } else {
+                        toast.error('آدرس خارج از استان گلستان است. لطفا آدرسی در گلستان وارد کنید.');
+                    }
+                } else {
+                    toast.error('آدرس یافت نشد. لطفا آدرس دقیق‌تری در گلستان (مثل "کردکوی، گلستان") وارد کنید.');
+                }
+            } catch (error) {
+                console.error('خطا در ژئوکدن:', error);
+                toast.error('خطا در یافتن مختصات آدرس.');
+            }
+        }, 500),
+        []
+    );
+
+    const handleChange = (e) => {
         const { name, value, files } = e.target;
-        if (name === 'image' && files.length > 0) {
+
+        setFormData((prev) => {
+            const newData = { ...prev, [name]: files ? files[0] : value };
+            console.log('formData after update:', newData); // برای دیباگ
+            return newData;
+        });
+        setErrors((prev) => ({ ...prev, [name]: '' }));
+
+        if (name === 'location') {
+            geocodeAddress(value); // ژئوکدن با تاخیر
+        } else if (name === 'image' && files.length > 0) {
             const token = localStorage.getItem('auth_token');
             if (!token) {
                 toast.error('لطفا ابتدا وارد شوید.');
@@ -35,14 +99,14 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
                 body.append('image', files[i]);
 
                 try {
-                    const response = await fetch(`${env.baseUrl}api/uploadTemporaryImage`, {
+                    const response = fetch(`${env.baseUrl}api/uploadTemporaryImage`, {
                         method: 'POST',
                         headers: { Authorization: `Bearer ${token}` },
                         body,
                     });
 
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    const result = await response.json();
+                    const result = response.json();
                     setImages((prev) => [...prev, result.image_url]);
                     toast.success(`تصویر ${i + 1} با موفقیت آپلود شد.`);
                 } catch (error) {
@@ -50,23 +114,20 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
                     toast.error(`خطا در آپلود تصویر ${i + 1}`);
                 }
             }
-        } else {
-            setFormData((prev) => ({
-                ...prev,
-                [name]: files ? files[0] : value,
-            }));
         }
-
-        setErrors((prev) => ({ ...prev, [name]: '' }));
     };
 
     const handleMapClick = (lat, long) => {
-        setFormData((prev) => ({
-            ...prev,
-            lat: lat.toString(),
-            long: long.toString(),
-        }));
-        setErrors((prev) => ({ ...prev, lat: '', long: '' }));
+        if (isInGolestan(lat, long)) {
+            setFormData((prev) => ({
+                ...prev,
+                lat: lat.toString(),
+                long: long.toString(),
+            }));
+            setErrors((prev) => ({ ...prev, lat: '', long: '', map: '' }));
+        } else {
+            toast.error('موقعیت انتخاب‌شده خارج از گلستان است. لطفا در محدوده گلستان انتخاب کنید.');
+        }
     };
 
     const validate = () => {
@@ -137,6 +198,7 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
                 image: null,
             });
             setImages([]);
+            setMapCenter([36.8392, 54.4342]);
             fetchReports();
         } catch (error) {
             console.error('خطا در ثبت گزارش:', error);
@@ -151,19 +213,25 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
             <h3>ثبت گزارش جدید</h3>
             <form onSubmit={handleSubmit} className={styles.form}>
                 <label>
-                    عنوان:
+                    <span className={styles.labelContainer}>
+                        عنوان <span className={styles.required}>*</span>
+                    </span>
                     <input type="text" name="title" value={formData.title} onChange={handleChange} />
                     {errors.title && <span className={styles.error}>{errors.title}</span>}
                 </label>
 
                 <label>
-                    توضیحات:
+                    <span className={styles.labelContainer}>
+                        توضیحات <span className={styles.required}>*</span>
+                    </span>
                     <textarea name="description" value={formData.description} onChange={handleChange} rows="4" />
                     {errors.description && <span className={styles.error}>{errors.description}</span>}
                 </label>
 
                 <label>
-                    دسته‌بندی:
+                    <span className={styles.labelContainer}>
+                        دسته‌بندی <span className={styles.required}>*</span>
+                    </span>
                     <select name="category_id" value={formData.category_id} onChange={handleChange}>
                         <option value="">انتخاب کنید</option>
                         {categories.map((cat) => (
@@ -176,7 +244,9 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
                 </label>
 
                 <label>
-                    منطقه:
+                    <span className={styles.labelContainer}>
+                        منطقه <span className={styles.required}>*</span>
+                    </span>
                     <select name="region_id" value={formData.region_id} onChange={handleChange}>
                         <option value="">انتخاب کنید</option>
                         {regions.map((region) => (
@@ -189,14 +259,26 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
                 </label>
 
                 <label>
-                    آدرس:
-                    <input type="text" name="location" value={formData.location} onChange={handleChange} />
+                    <span className={styles.labelContainer}>
+                        آدرس <span className={styles.required}>*</span>
+                    </span>
+                    <input
+                        type="text"
+                        name="location"
+                        value={formData.location || ''}
+                        onChange={handleChange}
+                        placeholder="آدرس را وارد کنید (مثل کردکوی، گلستان)"
+                        dir="rtl"
+                        className={styles.locationInput}
+                    />
                     {errors.location && <span className={styles.error}>{errors.location}</span>}
                 </label>
 
                 <label>
-                    انتخاب موقعیت روی نقشه:
-                    <MapPicker onMapClick={handleMapClick} />
+                    <span className={styles.labelContainer}>
+                        انتخاب موقعیت روی نقشه <span className={styles.required}>*</span>
+                    </span>
+                    <MapPicker onMapClick={handleMapClick} center={mapCenter} />
                     {formData.lat && formData.long && (
                         <p className={styles.selectedLocation}>
                             موقعیت انتخاب شده: ({formData.lat}, {formData.long})
@@ -206,7 +288,9 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
                 </label>
 
                 <label>
-                    آپلود تصویر:
+                    <span className={styles.labelContainer}>
+                        آپلود تصویر <span className={styles.required}>*</span>
+                    </span>
                     <input type="file" name="image" accept="image/*" multiple onChange={handleChange} />
                     {errors.image && <span className={styles.error}>{errors.image}</span>}
                     {images.length > 0 && (
