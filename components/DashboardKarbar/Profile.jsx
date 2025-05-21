@@ -27,10 +27,10 @@ const Profile = () => {
         if (!token) return;
 
         fetch(`${env.baseUrl}api/getUser`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${token}` },
         })
-            .then(res => res.json())
-            .then(json => {
+            .then((res) => res.json())
+            .then((json) => {
                 if (!json.status) throw new Error('خطا در دریافت پروفایل');
                 const u = json.data;
                 setName(u.name || '');
@@ -40,15 +40,17 @@ const Profile = () => {
                 setOrganization(u.organization || '');
                 setAvatarUrl(u.avatar ? `${env.baseUrl}${u.avatar}` : '');
                 setIsAdmin(u.role === 'admin');
+                // ذخیره داده‌های کاربر در localStorage
+                localStorage.setItem('auth_user', JSON.stringify(u));
             })
-            .catch(err => {
+            .catch((err) => {
                 console.error(err);
                 toast.error('خطا در بارگذاری اطلاعات کاربر');
             })
             .finally(() => setLoading(false));
     }, []);
 
-    const handleSubmit = e => {
+    const handleSubmit = (e) => {
         e.preventDefault();
         const token = localStorage.getItem('auth_token');
         const formData = new FormData();
@@ -66,24 +68,32 @@ const Profile = () => {
             headers: { 'Authorization': `Bearer ${token}` },
             body: formData,
         })
-            .then(res => res.json())
-            .then(json => {
+            .then((res) => res.json())
+            .then((json) => {
                 if (json.status) {
                     toast.success('پروفایل با موفقیت بروزرسانی شد');
-                    if (json.data && json.data.avatar) {
-                        setAvatarUrl(`${env.baseUrl}${json.data.avatar}`);
+                    if (json.data) {
+                        // به‌روزرسانی state‌های محلی
+                        setAvatarUrl(json.data.avatar ? `${env.baseUrl}${json.data.avatar}` : '');
+                        setName(json.data.name || '');
+                        setFamily(json.data.family || '');
+                        setEmail(json.data.email || '');
+                        setNationalCode(json.data.national_code || '');
+                        setOrganization(json.data.organization || '');
+                        // به‌روزرسانی localStorage
+                        localStorage.setItem('auth_user', JSON.stringify(json.data));
                     }
                 } else {
                     toast.error('خطا در بروزرسانی پروفایل');
                 }
             })
-            .catch(err => {
+            .catch((err) => {
                 console.error(err);
                 toast.error('خطا در ارتباط با سرور');
             });
     };
 
-    const handleSendOtp = e => {
+    const handleSendOtp = (e) => {
         e.preventDefault();
         if (!phone.match(/^09[0-9]{9}$/)) {
             toast.error('شماره موبایل معتبر نیست');
@@ -99,8 +109,8 @@ const Profile = () => {
             },
             body: JSON.stringify({ phone }),
         })
-            .then(res => res.json())
-            .then(json => {
+            .then((res) => res.json())
+            .then((json) => {
                 if (json.status) {
                     setOtpSent(true);
                     toast.success('کد تأیید ارسال شد');
@@ -108,7 +118,7 @@ const Profile = () => {
                     toast.error('خطا در ارسال کد تأیید');
                 }
             })
-            .catch(err => {
+            .catch((err) => {
                 console.error(err);
                 toast.error('خطا در ارتباط با سرور');
             })
@@ -126,7 +136,7 @@ const Profile = () => {
         }
     };
 
-    const handleVerifyOtp = e => {
+    const handleVerifyOtp = (e) => {
         e.preventDefault();
         const otpCode = otp.join('');
         if (otpCode.length !== 6 || !/^[0-9]{6}$/.test(otpCode)) {
@@ -143,10 +153,36 @@ const Profile = () => {
             },
             body: JSON.stringify({ phone, otp: otpCode }),
         })
-            .then(res => res.json())
-            .then(json => {
+            .then((res) => res.json())
+            .then((json) => {
                 if (json.status) {
                     toast.success('شماره موبایل با موفقیت بروزرسانی شد');
+                    // فراخوانی api/getUser برای دریافت داده‌های به‌روز کاربر
+                    fetch(`${env.baseUrl}api/getUser`, {
+                        headers: { 'Authorization': `Bearer ${token}` },
+                    })
+                        .then((res) => res.json())
+                        .then((userJson) => {
+                            if (userJson.status) {
+                                const u = userJson.data;
+                                // به‌روزرسانی state‌های محلی
+                                setName(u.name || '');
+                                setFamily(u.family || '');
+                                setEmail(u.email || '');
+                                setNationalCode(u.national_code || '');
+                                setOrganization(u.organization || '');
+                                setAvatarUrl(u.avatar ? `${env.baseUrl}${u.avatar}` : '');
+                                setIsAdmin(u.role === 'admin');
+                                // به‌روزرسانی localStorage
+                                localStorage.setItem('auth_user', JSON.stringify(u));
+                            } else {
+                                toast.error('خطا در دریافت اطلاعات به‌روز کاربر');
+                            }
+                        })
+                        .catch((err) => {
+                            console.error(err);
+                            toast.error('خطا در ارتباط با سرور');
+                        });
                     setOtpSent(false);
                     setOtp(['', '', '', '', '', '']);
                     setPhone('');
@@ -154,7 +190,7 @@ const Profile = () => {
                     toast.error('خطا در تأیید کد');
                 }
             })
-            .catch(err => {
+            .catch((err) => {
                 console.error(err);
                 toast.error('خطا در ارتباط با سرور');
             })
@@ -164,7 +200,7 @@ const Profile = () => {
     const handleChangePasswordRedirect = () => {
         router.push({
             pathname: '/login',
-            query: { step: 'change' }
+            query: { step: 'change' },
         });
     };
 
@@ -188,10 +224,7 @@ const Profile = () => {
                 >
                     تغییر شماره موبایل
                 </button>
-                <button
-                    className={styles.toolbarBtn}
-                    onClick={handleChangePasswordRedirect}
-                >
+                <button className={styles.toolbarBtn} onClick={handleChangePasswordRedirect}>
                     تغییر رمز عبور
                 </button>
             </div>
@@ -203,17 +236,9 @@ const Profile = () => {
                         <div className={styles.avatarContainer}>
                             <label htmlFor="avatarInput" className={styles.avatarLabel}>
                                 {avatarFile ? (
-                                    <img
-                                        src={URL.createObjectURL(avatarFile)}
-                                        alt="آواتار"
-                                        className={styles.avatarPreview}
-                                    />
+                                    <img src={URL.createObjectURL(avatarFile)} alt="آواتار" className={styles.avatarPreview} />
                                 ) : avatarUrl ? (
-                                    <img
-                                        src={avatarUrl}
-                                        alt="آواتار"
-                                        className={styles.avatarPreview}
-                                    />
+                                    <img src={avatarUrl} alt="آواتار" className={styles.avatarPreview} />
                                 ) : (
                                     <div className={styles.avatarPlaceholder}>
                                         <span>+</span>
@@ -238,48 +263,24 @@ const Profile = () => {
                         </div>
                         <label>
                             نام
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                required
-                            />
+                            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
                         </label>
                         <label>
                             نام خانوادگی
-                            <input
-                                type="text"
-                                value={family}
-                                onChange={(e) => setFamily(e.target.value)}
-                                required
-                            />
+                            <input type="text" value={family} onChange={(e) => setFamily(e.target.value)} required />
                         </label>
                         <label>
                             ایمیل
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                            />
+                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                         </label>
                         <label>
                             کد ملی
-                            <input
-                                type="text"
-                                value={nationalCode}
-                                onChange={(e) => setNationalCode(e.target.value)}
-                                required
-                            />
+                            <input type="text" value={nationalCode} onChange={(e) => setNationalCode(e.target.value)} required />
                         </label>
                         {isAdmin && (
                             <label>
                                 سازمان
-                                <input
-                                    type="text"
-                                    value={organization}
-                                    onChange={(e) => setOrganization(e.target.value)}
-                                />
+                                <input type="text" value={organization} onChange={(e) => setOrganization(e.target.value)} />
                             </label>
                         )}
                         <button type="submit" className={styles.submitBtn}>
@@ -298,7 +299,7 @@ const Profile = () => {
                             <input
                                 type="text"
                                 value={phone}
-                                onChange={e => setPhone(e.target.value)}
+                                onChange={(e) => setPhone(e.target.value)}
                                 placeholder="09123456789"
                                 required
                                 disabled={otpLoading}
@@ -315,7 +316,7 @@ const Profile = () => {
                                             type="text"
                                             maxLength="1"
                                             value={digit}
-                                            onChange={e => handleOtpChange(index, e.target.value)}
+                                            onChange={(e) => handleOtpChange(index, e.target.value)}
                                             className={styles.otpInput}
                                             required
                                             disabled={otpLoading}
@@ -325,19 +326,11 @@ const Profile = () => {
                             </>
                         )}
                         {!otpSent ? (
-                            <button
-                                type="submit"
-                                className={styles.otpBtn}
-                                disabled={otpLoading}
-                            >
+                            <button type="submit" className={styles.otpBtn} disabled={otpLoading}>
                                 {otpLoading ? 'در حال ارسال...' : 'ارسال کد تأیید'}
                             </button>
                         ) : (
-                            <button
-                                type="submit"
-                                className={styles.verifyBtn}
-                                disabled={otpLoading}
-                            >
+                            <button type="submit" className={styles.verifyBtn} disabled={otpLoading}>
                                 {otpLoading ? 'در حال تأیید...' : 'تأیید کد'}
                             </button>
                         )}
