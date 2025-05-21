@@ -1,31 +1,17 @@
 .mapSection {
-  padding: 3rem 1rem;
-  background-color: #eaf9f1;
+  padding: 2rem 1rem;
+  background: #eaf9f1; /* رنگ پس‌زمینه اصلی */
   text-align: center;
   font-family: iranSans, sans-serif;
+  min-height: 100vh;
 }
 
 .mapSection h2 {
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
-  color: #288c52;
-}
-
-.mapContainer {
-  position: relative;
-  max-width: 900px;
-  margin: 0 auto;
-  height: 500px;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  background: #fff;
-}
-
-.map {
-  width: 100%;
-  height: 100%;
+  color: #288c52; /* رنگ عنوان اصلی */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .loading {
@@ -35,87 +21,201 @@
   transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 1rem;
-  color: #10b981;
-  background: #f9fafb;
+  gap: 0.75rem;
+  font-size: 1.1rem;
+  color: #10b981; /* رنگ سبز اصلی */
+  background: #ffffff;
   padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
 }
 
 .loader {
-  width: 16px;
-  height: 16px;
-  border: 2px solid #10b981;
-  border-top: 2px solid transparent;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #10b981; /* رنگ سبز اصلی */
+  border-top: 3px solid transparent;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 .error {
-  font-size: 0.95rem;
-  color: #ef4444;
+  font-size: 1rem;
+  color: #ef4444; /* رنگ خطای اصلی */
   background: #fef2f2;
   padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* استایل تب‌ها */
+.tabContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.tabList {
+  display: flex;
+  gap: 0;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #e5e7eb; /* خط زیر تب‌ها */
+}
+
+.tab {
+  padding: 0.5rem 1rem; /* کاهش اندازه تب‌ها */
+  font-size: 0.95rem; /* فونت کوچک‌تر */
+  font-weight: 500;
+  color: #4b5563;
+  background: transparent; /* حذف پس‌زمینه دکمه‌ای */
+  border: none;
+  cursor: pointer;
+  transition: color 0.3s ease, border-bottom 0.3s ease;
+  position: relative;
+}
+
+.tab:hover {
+  color: #288c52; /* رنگ سبز تیره هنگام هاور */
+}
+
+.activeTab {
+  color: #10b981; /* رنگ سبز اصلی برای تب فعال */
+  border-bottom: 2px solid #10b981; /* خط زیر تب فعال */
+}
+
+.activeTab::after {
+  content: none; /* حذف خط اضافی قبلی */
+}
+
+.tabContent {
+  position: relative;
+}
+
+/* استایل نقشه */
+.mapContainer {
+  position: relative;
+  max-width: 100%;
+  height: 500px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  background: #ffffff;
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+}
+
+/* استایل جدول */
+.tableContainer {
+  max-width: 100%;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  padding: 1rem;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  text-align: right;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #288c52; /* رنگ سبز تیره برای سرستون‌ها */
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.table td {
+  color: #4b5563;
+}
+
+.showOnMapButton {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  color: #ffffff;
+  background: #10b981; /* رنگ سبز اصلی */
+  border: none;
   border-radius: 8px;
-  margin-bottom: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.showOnMapButton:hover {
+  background: #0ea668; /* رنگ سبز تیره‌تر برای هاور */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* استایل پاپ‌آپ */
 .customPopup .leaflet-popup-content-wrapper {
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
   background: #ffffff;
   padding: 0;
 }
 
 .customPopup .leaflet-popup-content {
   margin: 0;
-  width: 260px;
-  max-height: 360px;
+  width: 280px;
+  max-height: 400px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #d1d5db #f9fafb;
 }
 
 .reportCard {
-  /* padding: 1.25rem; */
+  padding: 1.5rem;
   background: #ffffff;
-  border-radius: 10px;
-  position: relative;
+  border-radius: 12px;
 }
 
 .statusBadge {
   position: absolute;
-  top: 0px;
-  left: 0px;
-  padding: 0.3rem 0.6rem;
-  border-radius: 10px;
-  font-size: 0.8rem;
+  top: 10px;
+  left: 10px;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
   font-weight: 600;
 }
 
 .statusBadge.pending {
-  background: #fef3c7;
+  background: #fef3c7; /* رنگ زرد اصلی */
   color: #d97706;
 }
 
 .statusBadge.in_progress {
-  background: #dbeafe;
+  background: #dbeafe; /* رنگ آبی اصلی */
   color: #2563eb;
 }
 
 .statusBadge.resolved {
-  background: #d1fae5;
+  background: #d1fae5; /* رنگ سبز روشن اصلی */
   color: #10b981;
 }
 
 .reportCard h4 {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: #288c52;
+  color: #288c52; /* رنگ سبز تیره برای عنوان */
   margin: 0 0 1rem;
   text-align: right;
 }
@@ -126,7 +226,7 @@
   align-items: flex-start;
   font-size: 0.9rem;
   color: #6b7280;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .label {
@@ -155,25 +255,94 @@
 .imageGallery {
   display: flex;
   overflow-x: auto;
-  gap: 8px;
+  gap: 10px;
   padding-bottom: 0.5rem;
 }
 
 .reportImage {
-  width: 70px;
-  height: 70px;
+  width: 80px;
+  height: 80px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid #e5e7eb;
-  transition: transform 0.2s ease;
+  transition: transform 0.3s ease;
 }
 
 .reportImage:hover {
-  transform: scale(1.05);
+  transform: scale(1.1);
 }
 
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* استایل‌های ریسپانسیو */
+@media (max-width: 768px) {
+  .mapSection {
+    padding: 1rem;
+  }
+
+  .mapSection h2 {
+    font-size: 1.5rem;
+  }
+
+  .tabList {
+    flex-direction: row; /* تب‌ها در موبایل افقی می‌مانند */
+    gap: 0;
+  }
+
+  .tab {
+    padding: 0.4rem 0.8rem; /* کوچکتر کردن تب‌ها در موبایل */
+    font-size: 0.9rem;
+  }
+
+  .mapContainer {
+    height: 400px;
+  }
+
+  .tableContainer {
+    padding: 0.5rem;
+  }
+
+  .table {
+    font-size: 0.85rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem;
+  }
+
+  .showOnMapButton {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .customPopup .leaflet-popup-content {
+    width: 220px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mapContainer {
+    height: 300px;
+  }
+
+  .table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .table th,
+  .table td {
+    min-width: 100px;
+  }
+
+  .tab {
+    padding: 0.3rem 0.6rem; /* تب‌ها در صفحه‌های خیلی کوچک */
+    font-size: 0.85rem;
   }
 }
