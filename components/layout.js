@@ -6,10 +6,11 @@ export default function Layout({ children }) {
   const router = useRouter();
 
   const hideFooter = router.pathname === "/dashboard";
+  const hideHeader = router.pathname === "/dashboard";
 
   return (
     <>
-      <Header />
+      {!hideHeader && <Header />}
       <main>{children}</main>
       {!hideFooter && <Footer />}
     </>
