@@ -22,6 +22,9 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [mapCenter, setMapCenter] = useState([36.8392, 54.4342]);
 
+    // حداکثر اندازه فایل (مثلاً ۵ مگابایت)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+
     // تابع Debounce
     const debounce = (func, delay) => {
         let timeoutId;
@@ -45,8 +48,7 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
         debounce(async (address) => {
             if (!address.trim()) return;
             try {
-                const apiKey = '253caed1f6994bf8b01f3ab1061bd7e6'; // API Key تو
-                // محدود کردن سرچ به گلستان با bounding box
+                const apiKey = '253caed1f6994bf8b01f3ab1061bd7e6';
                 const response = await fetch(
                     `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(address)}&format=json&apiKey=${apiKey}&filter=rect:53.8,36.5,56.2,37.8`
                 );
@@ -75,18 +77,55 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
         []
     );
 
-    const handleChange = (e) => {
+    // تابع آپلود تصویر
+    const uploadImage = async (file, token, index) => {
+        // چک کردن اندازه فایل
+        if (file.size > MAX_FILE_SIZE) {
+            toast.error(`تصویر ${index + 1} بیش از حد بزرگ است. حداکثر اندازه مجاز: ${MAX_FILE_SIZE / (1024 * 1024)} مگابایت.`);
+            return;
+        }
+
+        const body = new FormData();
+        body.append('image', file);
+
+        try {
+            console.log(`Uploading image: ${file.name}, size: ${file.size} bytes`);
+            const response = await fetch(`${env.baseUrl}api/uploadTemporaryImage`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+                body,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || 'نامشخص'}`);
+            }
+
+            const result = await response.json();
+            if (result.status && result.image_url) {
+                setImages((prev) => [...prev, result.image_url]);
+                toast.success(`تصویر ${index + 1} با موفقیت آپلود شد.`);
+            } else {
+                throw new Error('پاسخ سرور نامعتبر است.');
+            }
+        } catch (error) {
+            console.error('خطا در آپلود تصویر:', error);
+            toast.error(`خطا در آپلود تصویر ${index + 1}: ${error.message || 'مشکل در ارتباط با سرور'}`);
+        }
+    };
+
+    const handleChange = async (e) => {
         const { name, value, files } = e.target;
 
         setFormData((prev) => {
             const newData = { ...prev, [name]: files ? files[0] : value };
-            console.log('formData after update:', newData); // برای دیباگ
+            console.log('formData after update:', newData);
             return newData;
         });
         setErrors((prev) => ({ ...prev, [name]: '' }));
 
         if (name === 'location') {
-            geocodeAddress(value); // ژئوکدن با تاخیر
+            geocodeAddress(value);
         } else if (name === 'image' && files.length > 0) {
             const token = localStorage.getItem('auth_token');
             if (!token) {
@@ -94,25 +133,9 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
                 return;
             }
 
+            // آپلود هر تصویر به صورت جداگانه
             for (let i = 0; i < files.length; i++) {
-                const body = new FormData();
-                body.append('image', files[i]);
-
-                try {
-                    const response = fetch(`${env.baseUrl}api/uploadTemporaryImage`, {
-                        method: 'POST',
-                        headers: { Authorization: `Bearer ${token}` },
-                        body,
-                    });
-
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    const result = response.json();
-                    setImages((prev) => [...prev, result.image_url]);
-                    toast.success(`تصویر ${i + 1} با موفقیت آپلود شد.`);
-                } catch (error) {
-                    console.error('خطا در آپلود تصویر:', error);
-                    toast.error(`خطا در آپلود تصویر ${i + 1}`);
-                }
+                await uploadImage(files[i], token, i);
             }
         }
     };
