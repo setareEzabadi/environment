@@ -116,6 +116,7 @@ const LoginFlow = () => {
             toast.success("ورود موفقیت آمیز بود", ToastReaction.success);
             localStorage.setItem("auth_token", res.token);
             localStorage.setItem("auth_user", JSON.stringify(res.user));
+            localStorage.setItem("fromLogin", "true");
             router.push('/');
         } else {
             toast.error("پسورد اشتباه است", ToastReaction.error);
@@ -133,6 +134,8 @@ const LoginFlow = () => {
             if (res.userExisted) {
                 toast.success("ورود موفقیت آمیز بود", ToastReaction.success);
                 localStorage.setItem("auth_token", res.token);
+                localStorage.setItem("auth_user", JSON.stringify(res.user));
+                localStorage.setItem("fromLogin", "true");
                 router.push('/');
             } else {
                 setStep("register");
@@ -197,6 +200,7 @@ const LoginFlow = () => {
             toast.success("ثبت نام موفق", ToastReaction.success);
             localStorage.setItem("auth_token", res.token);
             localStorage.setItem("auth_user", JSON.stringify(res.user));
+            localStorage.setItem("fromLogin", "true");
             router.push('/');
         } else {
             if (res.errors) {
