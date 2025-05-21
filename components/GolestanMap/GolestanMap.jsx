@@ -13,6 +13,52 @@ L.Icon.Default.mergeOptions({
     shadowUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png",
 });
 
+// تعریف آیکون‌های سفارشی برای مارکرها
+const createCustomIcon = (color) => {
+    return new L.Icon({
+        iconUrl: `data:image/svg+xml;base64,${btoa(`
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                <path fill="${color}" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+        `)}`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 28],
+        popupAnchor: [0, -28],
+        shadowUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png",
+        shadowSize: [36, 36],
+    });
+};
+
+// آیکون‌ها برای هر حالت
+const markerIcons = {
+    resolved: createCustomIcon("#10b981"), // سبز
+    in_progress: createCustomIcon("#2563eb"), // آبی
+    pendingNew: createCustomIcon("#eab308"), // زرد لیمویی (کمتر از ۷ روز)
+    pendingMedium: createCustomIcon("#e47e00"), // نارنجی سوخته (۷ تا ۱۴ روز)
+    pendingOld: createCustomIcon("#ef4444"), // قرمز (۱۴ روز به بالا)
+};
+
+// تابع برای انتخاب آیکون مارکر
+const getMarkerIcon = (report) => {
+    const status = report.status;
+    if (status === "resolved") return markerIcons.resolved;
+    if (status === "in_progress") return markerIcons.in_progress;
+
+    // برای pending، محاسبه فاصله زمانی
+    const createdDate = new Date(report.created_at);
+    const currentDate = new Date();
+    const diffTime = currentDate - createdDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays >= 14) {
+        return markerIcons.pendingOld; // قرمز
+    } else if (diffDays >= 7) {
+        return markerIcons.pendingMedium; // نارنجی سوخته
+    } else {
+        return markerIcons.pendingNew; // زرد لیمویی
+    }
+};
+
 // کامپوننت برای مدیریت زوم و باز کردن پاپ‌آپ
 const MapController = ({ reportId, lat, long }) => {
     const map = useMap();
@@ -145,7 +191,8 @@ const GolestanMap = () => {
                                     <Marker
                                         key={report.id}
                                         position={[parseFloat(report.lat), parseFloat(report.long)]}
-                                        reportId={report.id} // اضافه کردن reportId برای شناسایی مارکر
+                                        icon={getMarkerIcon(report)} // استفاده از آیکون سفارشی
+                                        reportId={report.id} // برای شناسایی مارکر
                                     >
                                         <Popup className={styles.customPopup} autoPan={true}>
                                             <div className={styles.reportCard}>
