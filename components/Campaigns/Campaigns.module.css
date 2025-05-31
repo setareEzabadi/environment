@@ -1,3 +1,5 @@
+/* src/components/Campaigns.module.css */
+/* بقیه استایل‌ها مثل قبل */
 .campaigns {
   max-width: 1200px;
   margin: 2rem auto;
@@ -462,6 +464,95 @@
   border-radius: 16px;
 }
 
+/* استایل برای لیست شرکت‌کنندگان در مودال */
+.participantList {
+  list-style: none;
+  padding: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.participantList li {
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+/* استایل دکمه‌های جدید */
+.joinBtn,
+.paymentBtn {
+  background: #10b981;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 5px;
+}
+
+.joinBtn:hover,
+.paymentBtn:hover {
+  background: #059669;
+}
+
+.paymentInput {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-right: 10px;
+  width: 150px;
+}
+
+/* استایل برای PersianDatePicker */
+.datePickerInput {
+  padding: 0.8rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: iranSans, sans-serif !important;
+  direction: rtl;
+}
+
+.datePickerInput:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  outline: none;
+}
+
+.persian-datepicker {
+  font-family: iranSans, sans-serif !important;
+  direction: rtl;
+}
+
+.persian-datepicker table {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.persian-datepicker th,
+.persian-datepicker td {
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.persian-datepicker td:hover {
+  background: #10b981;
+  color: #fff;
+  border-radius: 4px;
+}
+
+/* استایل برای دکمه‌های فرم */
+.formActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 2rem;
+  justify-content: center;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .campaignsList {
@@ -510,6 +601,10 @@
   .paymentInput {
     width: 100%;
   }
+
+  .formActions {
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 480px) {
@@ -529,4 +624,268 @@
   .description {
     font-size: 0.9rem;
   }
+}
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 16px;
+  max-width: 600px;
+  width: 90%;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+  position: relative;
+  animation: slideIn 0.3s ease;
+  font-family: iranSans, sans-serif !important;
+  direction: rtl;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.modalCloseBtn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  transition: color 0.3s ease, transform 0.2s ease;
+}
+
+.modalCloseBtn:hover {
+  color: #ef4444;
+  transform: scale(1.2);
+}
+
+.modalContent {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 0 0.5rem;
+}
+
+.modalFooter {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1rem;
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.modalCloseFooterBtn {
+  padding: 0.7rem 2rem;
+  background: linear-gradient(90deg, #ef4444, #f87171);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.modalCloseFooterBtn:hover {
+  background: linear-gradient(90deg, #dc2626, #ef4444);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Participant List in Modal */
+.participantList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.participantList li {
+  padding: 0.8rem 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  color: #1f2937;
+  transition: background 0.3s ease;
+}
+
+.participantList li:hover {
+  background: #e5e7eb;
+}
+
+/* DatePicker Styles */
+.datePickerInput {
+  padding: 0.9rem;
+  background: #ffffff;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: iranSans, sans-serif !important;
+  direction: rtl;
+  transition: all 0.3s ease;
+}
+
+.datePickerInput:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+  outline: none;
+}
+
+/* استایل پاپر تقویم */
+.datePickerPopper {
+  font-family: iranSans, sans-serif !important;
+  direction: rtl;
+}
+
+/* استایل کانتینر تقویم */
+.datePickerPopper .MuiPaper-root {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 1rem;
+}
+
+/* استایل هدر تقویم (مثل ماه و سال) */
+.datePickerPopper .MuiPickersCalendarHeader-root {
+  background: linear-gradient(90deg, #10b981, #34d399);
+  color: #ffffff;
+  border-radius: 12px 12px 0 0;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* استایل دکمه‌های ناوبری (فلش‌ها) */
+.datePickerPopper .MuiPickersArrowSwitcher-button {
+  color: #ffffff;
+}
+
+.datePickerPopper .MuiPickersArrowSwitcher-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* استایل روزهای تقویم */
+.datePickerPopper .MuiPickersDay-root {
+  font-family: iranSans, sans-serif !important;
+  font-size: 0.95rem;
+  color: #1f2937;
+  transition: all 0.2s ease;
+}
+
+.datePickerPopper .MuiPickersDay-root:hover {
+  background: #10b981;
+  color: #ffffff;
+  border-radius: 8px;
+}
+
+.datePickerPopper .MuiPickersDay-root.Mui-selected {
+  background: #10b981;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.datePickerPopper .MuiPickersDay-root.Mui-disabled {
+  color: #d1d5db;
+}
+
+/* استایل نام روزهای هفته */
+.datePickerPopper .MuiDayCalendar-weekDayLabel {
+  font-family: iranSans, sans-serif !important;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+/* انیمیشن‌ها */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .modal {
+    width: 95%;
+    padding: 1rem;
+  }
+
+  .modalHeader h3 {
+    font-size: 1.2rem;
+  }
+
+  .modalCloseFooterBtn {
+    width: 100%;
+  }
+
+  .datePickerInput {
+    font-size: 0.9rem;
+  }
+}
+
+/* استایل برای لیبل‌های فیلدهای اجباری */
+.required {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* استایل برای علامت * */
+.requiredAsterisk {
+  color: #ef4444;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* استایل برای فیلدهای دارای خطا */
+.errorInput {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+}
+
+/* استایل برای پیام‌های خطا */
+.errorMessage {
+  color: #ef4444;
+  font-size: 0.85rem;
+  margin-top: 0.3rem;
+  display: block;
 }
