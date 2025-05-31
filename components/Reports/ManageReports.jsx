@@ -4,18 +4,33 @@ import env from '../../env';
 import { toast } from 'react-toastify';
 import { FaTrash, FaPrint, FaInfoCircle, FaPlus, FaMinus } from 'react-icons/fa';
 
-const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
+// اضافه‌شده برای تاریخ شمسی و MUI
+import { DatePicker as MuiDatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterMomentJalaali } from '@mui/x-date-pickers/AdapterMomentJalaali';
+import TextField from '@mui/material/TextField';
+import moment from 'moment-jalaali';
+
+const ManageReports = ({ categories, regions, isAdmin }) => {
     const [reports, setReports] = useState([]);
-    const [newCategory, setNewCategory] = useState('');
     const [filters, setFilters] = useState({ status: '', category_id: '', sort: 'latest' });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, links: [] });
-    const [selectedReport, setSelectedReport] = useState(null); // برای پاپ‌آپ
+    const [selectedReport, setSelectedReport] = useState(null);
+
+    const [filterOptions, setFilterOptions] = useState([]);
+    const [dynamicFilterValues, setDynamicFilterValues] = useState({});
 
     useEffect(() => {
         fetchReports();
     }, []);
+
+    useEffect(() => {
+        if (isAdmin) {
+            fetchFilterOptions();
+        }
+    }, [isAdmin]);
 
     const fetchReports = async () => {
         setLoading(true);
@@ -34,7 +49,6 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
                     'Content-Type': 'application/json',
                 },
             });
-
             if (!response.ok) throw new Error(`خطای HTTP! وضعیت: ${response.status}`);
             const result = await response.json();
             setReports(Array.isArray(result.data) ? result.data : []);
@@ -42,6 +56,40 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
         } catch (err) {
             setError(err.message || 'خطا در ارتباط با سرور');
             setReports([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchFilterOptions = async () => {
+        setLoading(true);
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            setError('توکن احراز هویت یافت نشد');
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/getFilterOptions`, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+            if (!response.ok) throw new Error(`خطای HTTP! وضعیت: ${response.status}`);
+            const result = await response.json();
+            const ops = Array.isArray(result.filters) ? result.filters : [];
+            setFilterOptions(ops);
+            const initialValues = {};
+            ops.forEach((f) => {
+                initialValues[f.key] = '';
+            });
+            setDynamicFilterValues(initialValues);
+        } catch (err) {
+            console.error('خطا در دریافت گزینه‌های فیلتر:', err);
+            setError(err.message || 'خطا در دریافت گزینه‌های فیلتر');
         } finally {
             setLoading(false);
         }
@@ -69,7 +117,6 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
                     'Content-Type': 'application/json',
                 },
             });
-
             if (!response.ok) throw new Error(`خطای HTTP! وضعیت: ${response.status}`);
             const result = await response.json();
             setReports(result.data || []);
@@ -93,7 +140,6 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
             toast.error('توکن احراز هویت یافت نشد');
             return;
         }
-
         try {
             const response = await fetch(`${env.baseUrl}api/updateStatus`, {
                 method: 'POST',
@@ -103,79 +149,16 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
                 },
                 body: JSON.stringify({ report_id: reportId, status: newStatus }),
             });
-
             const result = await response.json();
             if (!response.ok) {
                 throw new Error(result.message || 'خطا در به‌روزرسانی وضعیت');
             }
-
-            setReports(reports.map((report) =>
-                report.id === reportId ? { ...report, status: newStatus } : report
-            ));
+            setReports((prev) =>
+                prev.map((report) =>
+                    report.id === reportId ? { ...report, status: newStatus } : report
+                )
+            );
             toast.success('وضعیت گزارش به‌روزرسانی شد');
-        } catch (err) {
-            toast.error(err.message || 'خطا در ارتباط با سرور');
-        }
-    };
-
-    const addCategory = async () => {
-        if (!newCategory) {
-            toast.error('نام دسته‌بندی را وارد کنید');
-            return;
-        }
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            toast.error('توکن احراز هویت یافت نشد');
-            return;
-        }
-
-        try {
-            const response = await fetch(`${env.baseUrl}api/storeCategory`, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ name: newCategory }),
-            });
-
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.message || 'خطا در افزودن دسته‌بندی');
-            }
-
-            setCategories([...categories, { id: result.category.id, name: newCategory }]);
-            setNewCategory('');
-            toast.success('دسته‌بندی با موفقیت اضافه شد');
-        } catch (err) {
-            toast.error(err.message || 'خطا در ارتباط با سرور');
-        }
-    };
-
-    const deleteCategory = async (categoryId) => {
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            toast.error('توکن احراز هویت یافت نشد');
-            return;
-        }
-
-        try {
-            const response = await fetch(`${env.baseUrl}api/deleteCategory`, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ category_id: categoryId }),
-            });
-
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.message || 'خطا در حذف دسته‌بندی');
-            }
-
-            setCategories(categories.filter((cat) => cat.id !== categoryId));
-            toast.success('دسته‌بندی با موفقیت حذف شد');
         } catch (err) {
             toast.error(err.message || 'خطا در ارتباط با سرور');
         }
@@ -188,7 +171,6 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
             toast.error('توکن احراز هویت یافت نشد');
             return;
         }
-
         try {
             const response = await fetch(`${env.baseUrl}api/destroyReport`, {
                 method: 'POST',
@@ -198,13 +180,11 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
                 },
                 body: JSON.stringify({ report_id: reportId }),
             });
-
             const result = await response.json();
             if (!response.ok) {
                 throw new Error(result.message || 'خطا در حذف گزارش');
             }
-
-            setReports(reports.filter((report) => report.id !== reportId));
+            setReports((prev) => prev.filter((report) => report.id !== reportId));
             toast.success('گزارش با موفقیت حذف شد');
         } catch (err) {
             toast.error(err.message || 'خطا در ارتباط با سرور');
@@ -217,7 +197,6 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
             toast.error('توکن احراز هویت یافت نشد');
             return;
         }
-
         try {
             const response = await fetch(`${env.baseUrl}api/storeReportAssistance`, {
                 method: 'POST',
@@ -227,12 +206,10 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
                 },
                 body: JSON.stringify({ report_id: reportId }),
             });
-
             const result = await response.json();
             if (!response.ok) {
                 throw new Error(result.message || 'خطا در ثبت کمک');
             }
-
             toast.success('کمک به گزارش ثبت شد');
         } catch (err) {
             toast.error(err.message || 'خطا در ارتباط با سرور');
@@ -245,7 +222,6 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
             toast.error('توکن احراز هویت یافت نشد');
             return;
         }
-
         try {
             const response = await fetch(`${env.baseUrl}api/deleteReportAssistance`, {
                 method: 'POST',
@@ -255,12 +231,10 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
                 },
                 body: JSON.stringify({ report_id: reportId }),
             });
-
             const result = await response.json();
             if (!response.ok) {
                 throw new Error(result.message || 'خطا در حذف کمک');
             }
-
             toast.success('کمک از گزارش حذف شد');
         } catch (err) {
             toast.error(err.message || 'خطا در ارتباط با سرور');
@@ -290,7 +264,54 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
         return region ? region.name : 'بدون منطقه';
     };
 
-    // پرینت کل جدول
+    const handleDynamicFilterChange = (key, rawValue) => {
+        setDynamicFilterValues((prev) => ({
+            ...prev,
+            [key]: rawValue,
+        }));
+    };
+
+    const performDynamicSearch = async () => {
+        setLoading(true);
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            setError('توکن احراز هویت یافت نشد');
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const url = new URL(`http://127.0.0.1:8000/api/reports/dynamicSearch`);
+            Object.entries(dynamicFilterValues).forEach(([key, value]) => {
+                if (value !== '' && value !== null && value !== undefined) {
+                    url.searchParams.append(key, value);
+                }
+            });
+            const response = await fetch(url.toString(), {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+            if (!response.ok) throw new Error(`خطای HTTP! وضعیت: ${response.status}`);
+            const result = await response.json();
+            setReports(Array.isArray(result.data) ? result.data : []);
+            setPagination({
+                current_page: result.current_page || 1,
+                last_page: result.last_page || 1,
+                links: Array.isArray(result.links) ? result.links : [],
+            });
+        } catch (err) {
+            console.error('خطا در جستجوی داینامیک:', err);
+            setError(err.message || 'خطا در ارتباط با سرور');
+            setReports([]);
+            setPagination({ current_page: 1, last_page: 1, links: [] });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const printTable = () => {
         const printWindow = window.open('', '_blank');
         printWindow.document.write(`
@@ -360,20 +381,28 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        ${reports.map((report, index) => `
+                        ${reports
+                .map(
+                    (report, index) => `
                             <tr>
                                 <td>${index + 1}</td>
                                 <td>${report.title || 'بدون عنوان'}</td>
                                 <td><span class="statusBadge ${report.status}">
-                                    ${report.status === 'pending' ? 'در انتظار' :
-                report.status === 'in_progress' ? 'در حال انجام' : 'حل‌شده'}
+                                    ${report.status === 'pending'
+                            ? 'در انتظار'
+                            : report.status === 'in_progress'
+                                ? 'در حال انجام'
+                                : 'حل‌شده'
+                        }
                                 </span></td>
                                 <td>${getCategoryName(report)}</td>
                                 <td>${getRegionName(report)}</td>
                                 <td>${report.location || 'نامشخص'}</td>
                                 <td>${new Date(report.created_at).toLocaleDateString('fa-IR')}</td>
                             </tr>
-                        `).join('')}
+                        `
+                )
+                .join('')}
                     </tbody>
                 </table>
             </body>
@@ -383,7 +412,6 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
         printWindow.print();
     };
 
-    // پرینت گزارش خاص (برای دکمه پرینت هر سطر یا پاپ‌آپ)
     const printReport = (report) => {
         const printWindow = window.open('', '_blank');
         printWindow.document.write(`
@@ -451,22 +479,32 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
                 <div class="report">
                     <h2>${report.title || 'بدون عنوان'}</h2>
                     <p><strong>وضعیت:</strong> <span class="statusBadge ${report.status}">
-                        ${report.status === 'pending' ? 'در انتظار' :
-                report.status === 'in_progress' ? 'در حال انجام' : 'حل‌شده'}
+                        ${report.status === 'pending'
+                ? 'در انتظار'
+                : report.status === 'in_progress'
+                    ? 'در حال انجام'
+                    : 'حل‌شده'
+            }
                     </span></p>
                     <p><strong>توضیحات:</strong> ${report.description || 'بدون توضیحات'}</p>
                     <p><strong>دسته‌بندی:</strong> ${getCategoryName(report)}</p>
                     <p><strong>منطقه:</strong> ${getRegionName(report)}</p>
                     <p><strong>مکان:</strong> ${report.location || 'نامشخص'}</p>
                     <p><strong>موقعیت جغرافیایی:</strong> ${report.lat}, ${report.long}</p>
-                    <p><strong>تاریخ ایجاد:</strong> ${new Date(report.created_at).toLocaleDateString('fa-IR')}</p>
+                    <p><strong>تاریخ ایجاد:</strong> ${new Date(report.created_at).toLocaleDateString(
+                'fa-IR'
+            )}</p>
                     <div class="images">
                         <p><strong>تصاویر:</strong></p>
-                        ${report.images && report.images.length > 0 ?
-                report.images.map(image => `
+                        ${report.images && report.images.length > 0
+                ? report.images
+                    .map(
+                        (image) => `
                                 <img src="${env.baseUrl}${image.image_url}" alt="تصویر گزارش" />
-                            `).join('') :
-                '<p>بدون تصویر</p>'
+                            `
+                    )
+                    .join('')
+                : '<p>بدون تصویر</p>'
             }
                     </div>
                 </div>
@@ -477,75 +515,166 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
         printWindow.print();
     };
 
-    // باز کردن پاپ‌آپ
     const openPopup = (report) => {
         setSelectedReport(report);
     };
 
-    // بستن پاپ‌آپ
     const closePopup = () => {
         setSelectedReport(null);
     };
 
     return (
         <>
-            {/* فیلتر گزارش‌ها */}
-            <section className={styles.filterSection}>
-                <h3>فیلتر گزارش‌ها</h3>
-                <div className={styles.filterControls}>
-                    <select name="status" value={filters.status} onChange={handleFilterChange}>
-                        <option value="">همه وضعیت‌ها</option>
-                        <option value="pending">در انتظار</option>
-                        <option value="in_progress">در حال انجام</option>
-                        <option value="resolved">حل‌شده</option>
-                    </select>
-                    <select name="category_id" value={filters.category_id} onChange={handleFilterChange}>
-                        <option value="">همه دسته‌بندی‌ها</option>
-                        {categories.map((cat) => (
-                            <option key={cat.id} value={cat.id}>
-                                {cat.name}
-                            </option>
-                        ))}
-                    </select>
-                    <select name="sort" value={filters.sort} onChange={handleFilterChange}>
-                        <option value="latest">جدیدترین</option>
-                        <option value="oldest">قدیمی‌ترین</option>
-                    </select>
-                    <button onClick={() => fetchFilteredReports(1)} className={styles.searchBtn}>
-                        جستجو
-                    </button>
-                </div>
-            </section>
+            {isAdmin && (
+                <section className={styles.filterSection}>
+                    <h3>فیلتر داینامیک گزارش‌ها</h3>
 
-            {/* مدیریت دسته‌بندی‌ها (فقط ادمین) */}
-            {/* {isAdmin && (
-                <section className={styles.categorySection}>
-                    <h3>مدیریت دسته‌بندی‌ها</h3>
-                    <div className={styles.categoryForm}>
-                        <input
-                            type="text"
-                            placeholder="نام دسته‌بندی جدید"
-                            value={newCategory}
-                            onChange={(e) => setNewCategory(e.target.value)}
-                        />
-                        <button onClick={addCategory} className={styles.addCategoryBtn}>
-                            افزودن
+                    {loading && filterOptions.length === 0 ? (
+                        <div className={styles.loader}>در حال بارگذاری گزینه‌های فیلتر...</div>
+                    ) : filterOptions.length === 0 ? (
+                        <p className={styles.noFilters}>گزینه‌ای برای فیلتر یافت نشد.</p>
+                    ) : (
+                        <LocalizationProvider dateAdapter={AdapterMomentJalaali}>
+                            <div className={styles.filterControls}>
+                                {filterOptions.map((f) => {
+                                    const { key, label, type, options } = f;
+                                    const rawValue = dynamicFilterValues[key] ?? '';
+
+                                    if (type === 'select') {
+                                        return (
+                                            <div key={key} className={styles.filterItem}>
+                                                <label htmlFor={key}>{label}:</label>
+                                                <select
+                                                    id={key}
+                                                    name={key}
+                                                    value={rawValue}
+                                                    onChange={(e) =>
+                                                        handleDynamicFilterChange(key, e.target.value)
+                                                    }
+                                                >
+                                                    <option value="">انتخاب کنید</option>
+                                                    {Array.isArray(options) &&
+                                                        options.map((opt) => {
+                                                            if (typeof opt === 'string') {
+                                                                return (
+                                                                    <option key={opt} value={opt}>
+                                                                        {opt === 'pending'
+                                                                            ? 'در انتظار'
+                                                                            : opt === 'in_progress'
+                                                                                ? 'در حال انجام'
+                                                                                : opt === 'resolved'
+                                                                                    ? 'حل‌شده'
+                                                                                    : opt === 'unprocessed'
+                                                                                        ? 'بررسی نشده'
+                                                                                        : opt}
+                                                                    </option>
+                                                                );
+                                                            }
+                                                            return (
+                                                                <option key={opt.value} value={opt.value}>
+                                                                    {opt.label}
+                                                                </option>
+                                                            );
+                                                        })}
+                                                </select>
+                                            </div>
+                                        );
+                                    }
+
+                                    if (type === 'text') {
+                                        return (
+                                            <div key={key} className={styles.filterItem}>
+                                                <label htmlFor={key}>{label}:</label>
+                                                <input
+                                                    id={key}
+                                                    name={key}
+                                                    type="text"
+                                                    value={rawValue}
+                                                    onChange={(e) =>
+                                                        handleDynamicFilterChange(key, e.target.value)
+                                                    }
+                                                    placeholder={`جستجو بر اساس ${label}`}
+                                                />
+                                            </div>
+                                        );
+                                    }
+
+                                    if (type === 'date') {
+                                        // rawValue یک رشته YYYY-MM-DD است. اگر خالی نباشد، یک moment بسازیم.
+                                        const pickerValue = rawValue
+                                            ? moment(rawValue, 'YYYY-MM-DD')
+                                            : null;
+                                        return (
+                                            <div key={key} className={styles.filterItem}>
+                                                <label htmlFor={key}>{label}:</label>
+                                                <MuiDatePicker
+                                                    value={pickerValue}
+                                                    onChange={(date) => {
+                                                        const val = date
+                                                            ? date.format('YYYY-MM-DD')
+                                                            : '';
+                                                        handleDynamicFilterChange(key, val);
+                                                    }}
+                                                    inputFormat="jYYYY/jMM/jDD"
+                                                    mask="____/__/__"
+                                                    renderInput={(params) => (
+                                                        <TextField
+                                                            {...params}
+                                                            className={styles.datePickerInput}
+                                                            placeholder="انتخاب تاریخ"
+                                                            size="small"
+                                                        />
+                                                    )}
+                                                />
+                                            </div>
+                                        );
+                                    }
+
+                                    return null;
+                                })}
+
+                                <button onClick={performDynamicSearch} className={styles.searchBtn}>
+                                    جستجوی دینامیک
+                                </button>
+                            </div>
+                        </LocalizationProvider>
+                    )}
+                </section>
+            )}
+
+            {!isAdmin && (
+                <section className={styles.filterSection}>
+                    <h3>فیلتر گزارش‌ها</h3>
+                    <div className={styles.filterControls}>
+                        <select name="status" value={filters.status} onChange={handleFilterChange}>
+                            <option value="">همه وضعیت‌ها</option>
+                            <option value="pending">در انتظار</option>
+                            <option value="in_progress">در حال انجام</option>
+                            <option value="resolved">حل‌شده</option>
+                        </select>
+                        <select
+                            name="category_id"
+                            value={filters.category_id}
+                            onChange={handleFilterChange}
+                        >
+                            <option value="">همه دسته‌بندی‌ها</option>
+                            {categories.map((cat) => (
+                                <option key={cat.id} value={cat.id}>
+                                    {cat.name}
+                                </option>
+                            ))}
+                        </select>
+                        <select name="sort" value={filters.sort} onChange={handleFilterChange}>
+                            <option value="latest">جدیدترین</option>
+                            <option value="oldest">قدیمی‌ترین</option>
+                        </select>
+                        <button onClick={() => fetchFilteredReports(1)} className={styles.searchBtn}>
+                            جستجو
                         </button>
                     </div>
-                    <ul className={styles.categoryList}>
-                        {categories.map((cat) => (
-                            <li key={cat.id}>
-                                <span>{cat.name}</span>
-                                <button onClick={() => deleteCategory(cat.id)} className={styles.deleteBtn}>
-                                    <FaTrash />
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
                 </section>
-            )} */}
+            )}
 
-            {/* لیست گزارش‌ها */}
             <section className={styles.reportsSection}>
                 <div className={styles.tableHeader}>
                     <h3>لیست گزارش‌ها</h3>
@@ -580,7 +709,9 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
                                             <td>{index + 1}</td>
                                             <td>{report.title || 'بدون عنوان'}</td>
                                             <td>
-                                                <span className={`${styles.statusBadge} ${styles[report.status]}`}>
+                                                <span
+                                                    className={`${styles.statusBadge} ${styles[report.status]}`}
+                                                >
                                                     {report.status === 'pending'
                                                         ? 'در انتظار'
                                                         : report.status === 'in_progress'
@@ -591,7 +722,11 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
                                             <td>{getCategoryName(report)}</td>
                                             <td>{getRegionName(report)}</td>
                                             <td>{report.location || 'نامشخص'}</td>
-                                            <td>{new Date(report.created_at).toLocaleDateString('fa-IR')}</td>
+                                            <td>
+                                                {new Date(
+                                                    report.created_at
+                                                ).toLocaleDateString('fa-IR')}
+                                            </td>
                                             <td className={styles.actions}>
                                                 <button
                                                     onClick={() => openPopup(report)}
@@ -632,12 +767,16 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
                                                         </button>
                                                         <select
                                                             value={report.status}
-                                                            onChange={(e) => updateStatus(report.id, e.target.value)}
+                                                            onChange={(e) =>
+                                                                updateStatus(report.id, e.target.value)
+                                                            }
                                                             className={styles.statusSelect}
                                                             data-tooltip="تغییر وضعیت"
                                                         >
                                                             <option value="pending">در انتظار</option>
-                                                            <option value="in_progress">در حال انجام</option>
+                                                            <option value="in_progress">
+                                                                در حال انجام
+                                                            </option>
                                                             <option value="resolved">حل‌شده</option>
                                                         </select>
                                                     </>
@@ -660,22 +799,29 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
                                 disabled={!link.url}
                                 className={link.active ? styles.activePage : ''}
                             >
-                                {link.label === '« Previous' ? 'قبلی' : link.label === 'Next »' ? 'بعدی' : link.label}
+                                {link.label === '« Previous'
+                                    ? 'قبلی'
+                                    : link.label === 'Next »'
+                                        ? 'بعدی'
+                                        : link.label}
                             </button>
                         ))}
                     </div>
                 )}
             </section>
 
-            {/* پاپ‌آپ جزئیات */}
             {selectedReport && (
                 <div className={styles.popup}>
                     <div className={styles.popupContent}>
-                        <button onClick={closePopup} className={styles.closeBtn}>×</button>
+                        <button onClick={closePopup} className={styles.closeBtn}>
+                            ×
+                        </button>
                         <h3>{selectedReport.title || 'بدون عنوان'}</h3>
                         <p>
                             <strong>وضعیت:</strong>{' '}
-                            <span className={`${styles.statusBadge} ${styles[selectedReport.status]}`}>
+                            <span
+                                className={`${styles.statusBadge} ${styles[selectedReport.status]}`}
+                            >
                                 {selectedReport.status === 'pending'
                                     ? 'در انتظار'
                                     : selectedReport.status === 'in_progress'
@@ -683,14 +829,31 @@ const ManageReports = ({ categories, regions, isAdmin, fetchCategories }) => {
                                         : 'حل‌شده'}
                             </span>
                         </p>
-                        <p><strong>توضیحات:</strong> {selectedReport.description || 'بدون توضیحات'}</p>
-                        <p><strong>دسته‌بندی:</strong> {getCategoryName(selectedReport)}</p>
-                        <p><strong>منطقه:</strong> {getRegionName(selectedReport)}</p>
-                        <p><strong>مکان:</strong> {selectedReport.location || 'نامشخص'}</p>
-                        <p><strong>موقعیت جغرافیایی:</strong> {selectedReport.lat}, {selectedReport.long}</p>
-                        <p><strong>تاریخ ایجاد:</strong> {new Date(selectedReport.created_at).toLocaleDateString('fa-IR')}</p>
+                        <p>
+                            <strong>توضیحات:</strong>{' '}
+                            {selectedReport.description || 'بدون توضیحات'}
+                        </p>
+                        <p>
+                            <strong>دسته‌بندی:</strong> {getCategoryName(selectedReport)}
+                        </p>
+                        <p>
+                            <strong>منطقه:</strong> {getRegionName(selectedReport)}
+                        </p>
+                        <p>
+                            <strong>مکان:</strong> {selectedReport.location || 'نامشخص'}
+                        </p>
+                        <p>
+                            <strong>موقعیت جغرافیایی:</strong> {selectedReport.lat},{' '}
+                            {selectedReport.long}
+                        </p>
+                        <p>
+                            <strong>تاریخ ایجاد:</strong>{' '}
+                            {new Date(selectedReport.created_at).toLocaleDateString('fa-IR')}
+                        </p>
                         <div className={styles.images}>
-                            <p><strong>تصاویر:</strong></p>
+                            <p>
+                                <strong>تصاویر:</strong>
+                            </p>
                             {selectedReport.images && selectedReport.images.length > 0 ? (
                                 <div className={styles.imageGallery}>
                                     {selectedReport.images.map((image) => (
