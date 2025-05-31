@@ -21,11 +21,9 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [mapCenter, setMapCenter] = useState([36.8392, 54.4342]);
+    const [trackingCode, setTrackingCode] = useState(null);
+    const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
 
-    // حداکثر اندازه فایل (مثلاً 1 مگابایت)
-    const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB in bytes
-
-    // تابع Debounce
     const debounce = (func, delay) => {
         let timeoutId;
         return (...args) => {
@@ -34,7 +32,6 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
         };
     };
 
-    // چک کردن محدوده گلستان
     const isInGolestan = (lat, lon) => {
         const latMin = 36.5;
         const latMax = 37.8;
@@ -43,14 +40,15 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
         return lat >= latMin && lat <= latMax && lon >= lonMin && lon <= lonMax;
     };
 
-    // تابع ژئوکدن محدود به گلستان
     const geocodeAddress = useCallback(
         debounce(async (address) => {
             if (!address.trim()) return;
             try {
                 const apiKey = '253caed1f6994bf8b01f3ab1061bd7e6';
                 const response = await fetch(
-                    `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(address)}&format=json&apiKey=${apiKey}&filter=rect:53.8,36.5,56.2,37.8`
+                    `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(
+                        address
+                    )}&format=json&apiKey=${apiKey}&filter=rect:53.8,36.5,56.2,37.8`
                 );
                 const data = await response.json();
                 if (data.results && data.results.length > 0) {
@@ -64,10 +62,14 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
                         }));
                         setErrors((prev) => ({ ...prev, lat: '', long: '', map: '' }));
                     } else {
-                        toast.error('آدرس خارج از استان گلستان است. لطفا آدرسی در گلستان وارد کنید.');
+                        toast.error(
+                            'آدرس خارج از استان گلستان است. لطفا آدرسی در گلستان وارد کنید.'
+                        );
                     }
                 } else {
-                    toast.error('آدرس یافت نشد. لطفا آدرس دقیق‌تری در گلستان (مثل "کردکوی، گلستان") وارد کنید.');
+                    toast.error(
+                        'آدرس یافت نشد. لطفا آدرس دقیق‌تری در گلستان (مثل "کردکوی، گلستان") وارد کنید.'
+                    );
                 }
             } catch (error) {
                 console.error('خطا در ژئوکدن:', error);
@@ -77,11 +79,12 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
         []
     );
 
-    // تابع آپلود تصویر
     const uploadImage = async (file, token, index) => {
-        // چک کردن اندازه فایل
         if (file.size > MAX_FILE_SIZE) {
-            toast.error(`تصویر ${index + 1} بیش از حد بزرگ است. حداکثر اندازه مجاز: ${MAX_FILE_SIZE / (1024 * 1024)} مگابایت.`);
+            toast.error(
+                `تصویر ${index + 1} بیش از حد بزرگ است. حداکثر اندازه مجاز: ${MAX_FILE_SIZE / (1024 * 1024)
+                } مگابایت.`
+            );
             return;
         }
 
@@ -89,7 +92,6 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
         body.append('image', file);
 
         try {
-            console.log(`Uploading image: ${file.name}, size: ${file.size} bytes`);
             const response = await fetch(`${env.baseUrl}api/uploadTemporaryImage`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
@@ -98,7 +100,10 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || 'نامشخص'}`);
+                throw new Error(
+                    `HTTP error! status: ${response.status}, message: ${errorData.message || 'نامشخص'
+                    }`
+                );
             }
 
             const result = await response.json();
@@ -110,7 +115,10 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
             }
         } catch (error) {
             console.error('خطا در آپلود تصویر:', error);
-            toast.error(`خطا در آپلود تصویر ${index + 1}: ${error.message || 'مشکل در ارتباط با سرور'}`);
+            toast.error(
+                `خطا در آپلود تصویر ${index + 1}: ${error.message || 'مشکل در ارتباط با سرور'
+                }`
+            );
         }
     };
 
@@ -119,7 +127,6 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
 
         setFormData((prev) => {
             const newData = { ...prev, [name]: files ? files[0] : value };
-            console.log('formData after update:', newData);
             return newData;
         });
         setErrors((prev) => ({ ...prev, [name]: '' }));
@@ -132,8 +139,6 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
                 toast.error('لطفا ابتدا وارد شوید.');
                 return;
             }
-
-            // آپلود هر تصویر به صورت جداگانه
             for (let i = 0; i < files.length; i++) {
                 await uploadImage(files[i], token, i);
             }
@@ -149,18 +154,24 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
             }));
             setErrors((prev) => ({ ...prev, lat: '', long: '', map: '' }));
         } else {
-            toast.error('موقعیت انتخاب‌شده خارج از گلستان است. لطفا در محدوده گلستان انتخاب کنید.');
+            toast.error(
+                'موقعیت انتخاب‌شده خارج از گلستان است. لطفا در محدوده گلستان انتخاب کنید.'
+            );
         }
     };
 
     const validate = () => {
         const newErrors = {};
         if (!formData.title.trim()) newErrors.title = 'عنوان را وارد کنید.';
-        if (!formData.description.trim()) newErrors.description = 'توضیحات را وارد کنید.';
-        if (!formData.category_id) newErrors.category_id = 'دسته‌بندی را انتخاب کنید.';
-        if (!formData.location.trim()) newErrors.location = 'مکان را وارد کنید.';
+        if (!formData.description.trim())
+            newErrors.description = 'توضیحات را وارد کنید.';
+        if (!formData.category_id)
+            newErrors.category_id = 'دسته‌بندی را انتخاب کنید.';
+        if (!formData.location.trim())
+            newErrors.location = 'مکان را وارد کنید.';
         if (!formData.region_id) newErrors.region_id = 'منطقه را انتخاب کنید.';
-        if (!formData.lat || !formData.long) newErrors.map = 'موقعیت مکانی را روی نقشه انتخاب کنید.';
+        if (!formData.lat || !formData.long)
+            newErrors.map = 'موقعیت مکانی را روی نقشه انتخاب کنید.';
         if (images.length === 0) newErrors.image = 'حداقل یک تصویر آپلود کنید.';
         return newErrors;
     };
@@ -205,11 +216,22 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || 'نامشخص'}`);
+                throw new Error(
+                    `HTTP error! status: ${response.status}, message: ${errorData.message || 'نامشخص'
+                    }`
+                );
             }
 
-            await response.json();
-            toast.success('گزارش با موفقیت ثبت شد!');
+            const result = await response.json();
+            if (result.status && result.tracking_code) {
+                setTrackingCode(result.tracking_code);
+                toast.success(
+                    `گزارش با موفقیت ثبت شد! کد پیگیری: ${result.tracking_code}`
+                );
+            } else {
+                toast.success('گزارش با موفقیت ثبت شد!');
+            }
+
             setFormData({
                 title: '',
                 description: '',
@@ -239,23 +261,41 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
                     <span className={styles.labelContainer}>
                         عنوان <span className={styles.required}>*</span>
                     </span>
-                    <input type="text" name="title" value={formData.title} onChange={handleChange} />
-                    {errors.title && <span className={styles.error}>{errors.title}</span>}
+                    <input
+                        type="text"
+                        name="title"
+                        value={formData.title}
+                        onChange={handleChange}
+                    />
+                    {errors.title && (
+                        <span className={styles.error}>{errors.title}</span>
+                    )}
                 </label>
 
                 <label>
                     <span className={styles.labelContainer}>
                         توضیحات <span className={styles.required}>*</span>
                     </span>
-                    <textarea name="description" value={formData.description} onChange={handleChange} rows="4" />
-                    {errors.description && <span className={styles.error}>{errors.description}</span>}
+                    <textarea
+                        name="description"
+                        value={formData.description}
+                        onChange={handleChange}
+                        rows="4"
+                    />
+                    {errors.description && (
+                        <span className={styles.error}>{errors.description}</span>
+                    )}
                 </label>
 
                 <label>
                     <span className={styles.labelContainer}>
                         دسته‌بندی <span className={styles.required}>*</span>
                     </span>
-                    <select name="category_id" value={formData.category_id} onChange={handleChange}>
+                    <select
+                        name="category_id"
+                        value={formData.category_id}
+                        onChange={handleChange}
+                    >
                         <option value="">انتخاب کنید</option>
                         {categories.map((cat) => (
                             <option key={cat.id} value={cat.id}>
@@ -263,14 +303,20 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
                             </option>
                         ))}
                     </select>
-                    {errors.category_id && <span className={styles.error}>{errors.category_id}</span>}
+                    {errors.category_id && (
+                        <span className={styles.error}>{errors.category_id}</span>
+                    )}
                 </label>
 
                 <label>
                     <span className={styles.labelContainer}>
                         منطقه <span className={styles.required}>*</span>
                     </span>
-                    <select name="region_id" value={formData.region_id} onChange={handleChange}>
+                    <select
+                        name="region_id"
+                        value={formData.region_id}
+                        onChange={handleChange}
+                    >
                         <option value="">انتخاب کنید</option>
                         {regions.map((region) => (
                             <option key={region.id} value={region.id}>
@@ -278,7 +324,9 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
                             </option>
                         ))}
                     </select>
-                    {errors.region_id && <span className={styles.error}>{errors.region_id}</span>}
+                    {errors.region_id && (
+                        <span className={styles.error}>{errors.region_id}</span>
+                    )}
                 </label>
 
                 <label>
@@ -294,12 +342,15 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
                         dir="rtl"
                         className={styles.locationInput}
                     />
-                    {errors.location && <span className={styles.error}>{errors.location}</span>}
+                    {errors.location && (
+                        <span className={styles.error}>{errors.location}</span>
+                    )}
                 </label>
 
                 <label>
                     <span className={styles.labelContainer}>
-                        انتخاب موقعیت روی نقشه <span className={styles.required}>*</span>
+                        انتخاب موقعیت روی نقشه{' '}
+                        <span className={styles.required}>*</span>
                     </span>
                     <MapPicker onMapClick={handleMapClick} center={mapCenter} />
                     {formData.lat && formData.long && (
@@ -307,23 +358,45 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
                             موقعیت انتخاب شده: ({formData.lat}, {formData.long})
                         </p>
                     )}
-                    {errors.map && <span className={styles.error}>{errors.map}</span>}
+                    {errors.map && (
+                        <span className={styles.error}>{errors.map}</span>
+                    )}
                 </label>
 
                 <label>
                     <span className={styles.labelContainer}>
                         آپلود تصویر <span className={styles.required}>*</span>
                     </span>
-                    <input type="file" name="image" accept="image/*" multiple onChange={handleChange} />
-                    {errors.image && <span className={styles.error}>{errors.image}</span>}
+                    <input
+                        type="file"
+                        name="image"
+                        accept="image/*"
+                        multiple
+                        onChange={handleChange}
+                    />
+                    {errors.image && (
+                        <span className={styles.error}>{errors.image}</span>
+                    )}
                     {images.length > 0 && (
-                        <p className={styles.imageCount}>تصاویر آپلودشده: {images.length}</p>
+                        <p className={styles.imageCount}>
+                            تصاویر آپلودشده: {images.length}
+                        </p>
                     )}
                 </label>
 
-                <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
+                <button
+                    type="submit"
+                    className={styles.submitBtn}
+                    disabled={isSubmitting}
+                >
                     {isSubmitting ? 'در حال ارسال...' : 'ارسال گزارش'}
                 </button>
+
+                {trackingCode && (
+                    <p className={styles.trackingInfo}>
+                        کد پیگیری شما: <strong>{trackingCode}</strong>
+                    </p>
+                )}
             </form>
         </section>
     );
