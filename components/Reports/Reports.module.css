@@ -918,3 +918,110 @@
   width: 160px;
   font-size: 14px !important;
 }
+
+/* ====================== */
+/*  بخش جستجوی tracking   */
+/* ====================== */
+
+.trackSearchSection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* دکمه و ورودی راست‌چین باشند */
+  margin-bottom: 16px;
+  gap: 8px;
+}
+
+.trackSearchControls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.trackSearchControls input.trackInput {
+  padding: 6px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #1e293b;
+  min-width: 180px;
+}
+
+.trackSearchBtn {
+  background-color: #10b981;
+  color: #fff;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.trackSearchBtn:hover {
+  background: #047857;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
+}
+
+.trackError {
+  color: #dc2626; /* قرمز */
+  font-size: 13px;
+  margin-top: 4px;
+  align-self: flex-start; /* نمایش خطا زیر ورودی */
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(30, 41, 59, 0.7); /* نیمه شفاف تیره */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.modalCloseBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #475569;
+  transition: color 0.2s ease;
+}
+
+.modalCloseBtn:hover {
+  color: #1e293b;
+}
+
+.trackedResult {
+  margin-top: 12px;
+  line-height: 1.6;
+  color: #334155;
+}
+
+.trackedResult p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.trackedResult strong {
+  color: #1e293b;
+}
