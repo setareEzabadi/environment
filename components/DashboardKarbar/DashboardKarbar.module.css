@@ -1307,6 +1307,227 @@
   border-radius: 16px;
 }
 
+/* DashboardKarbar.module.css */
+
+/* Tabs */
+.tabContainer {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  background: #e5e7eb;
+  color: #4b5563;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  text-align: center;
+  max-width: 200px;
+  font-family: iranSans !important;
+}
+
+.tab:hover {
+  background: #d1d5db;
+}
+
+.activeTab {
+  background: linear-gradient(135deg, #288c52, #17c05f);
+  color: #fff;
+}
+
+.activeTab:hover {
+  background: linear-gradient(to right, #15803d, #059669);
+}
+
+.tabContent {
+  padding: 1rem;
+}
+
+/* Payment Form */
+.paymentForm {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.paymentInput {
+  padding: 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  width: 150px;
+  font-family: iranSans !important;
+}
+
+.paymentBtn {
+  padding: 0.65rem 1rem;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.paymentBtn:hover {
+  background: #047857;
+}
+
+.paymentBtn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Status */
+.status {
+  padding: 0.3rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.status-active {
+  background: #10b981;
+  color: white;
+}
+
+.status-upcoming {
+  background: #3b82f6;
+  color: white;
+}
+
+.status-ended {
+  background: #6b7280;
+  color: white;
+}
+
+.status-paused {
+  background: #f59e0b;
+  color: white;
+}
+
+.status-unknown {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+/* Filter Section */
+.filterSection {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.filterSection h3 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.filterControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filterSelect {
+  flex: 1;
+  min-width: 150px;
+  padding: 0.8rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  background: #ffffff;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.filterSelect:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  outline: none;
+}
+
+/* Participant List */
+.participantList {
+  list-style: none;
+  padding: 0;
+}
+
+.participantList li {
+  padding: 0.5rem 0;
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.detailsBtn,
+.participantsBtn,
+.joinBtn,
+.editBtn,
+.deleteBtn {
+  padding: 0.65rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.participantsBtn {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.participantsBtn:hover {
+  background: #2563eb;
+}
+
+.joinBtn {
+  background: #10b981;
+  color: #fff;
+}
+
+.joinBtn:hover {
+  background: #047857;
+}
+
+.editBtn {
+  background: #f59e0b;
+  color: #fff;
+}
+
+.editBtn:hover {
+  background: #d97706;
+}
+
+.deleteBtn {
+  background: #ef4444;
+  color: #fff;
+}
+
+.deleteBtn:hover {
+  background: #dc2626;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .table th,
