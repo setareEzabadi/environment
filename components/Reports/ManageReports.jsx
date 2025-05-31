@@ -4,7 +4,6 @@ import env from '../../env';
 import { toast } from 'react-toastify';
 import { FaTrash, FaPrint, FaInfoCircle, FaPlus, FaMinus } from 'react-icons/fa';
 
-// اضافه‌شده برای تاریخ شمسی و MUI
 import { DatePicker as MuiDatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterMomentJalaali } from '@mui/x-date-pickers/AdapterMomentJalaali';
@@ -21,6 +20,76 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
 
     const [filterOptions, setFilterOptions] = useState([]);
     const [dynamicFilterValues, setDynamicFilterValues] = useState({});
+
+    // ======= کدهای اضافه‌شده برای جستجوی tracking_code =======
+    const [searchCode, setSearchCode] = useState('');
+    const [trackedReport, setTrackedReport] = useState(null);
+    const [trackError, setTrackError] = useState('');
+
+    const handleTrackSearch = async () => {
+        if (!searchCode.trim()) {
+            setTrackError('لطفا کد پیگیری را وارد کنید.');
+            setTrackedReport(null);
+            return;
+        }
+        setTrackError('');
+        setTrackedReport(null);
+
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            setTrackError('توکن احراز هویت یافت نشد');
+            return;
+        }
+
+        try {
+            const url = `http://127.0.0.1:8000/api/report/track?tracking_code=${encodeURIComponent(
+                searchCode
+            )}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                // اگر سرور خطای ساختار یافته بازگرداند
+                if (result.status === false) {
+                    // نمایش پیام اصلی
+                    setTrackError(result.message || 'خطا در جستجوی پیگیری');
+                    // اگر خطاهای فیلدی باشد، پیام اول tracking_code را هم نمایش بده
+                    if (result.errors && result.message && Array.isArray(result.message)) {
+                        setTrackError(result.message);
+                    }
+                } else {
+                    setTrackError(`خطای HTTP! وضعیت: ${response.status}`);
+                }
+                return;
+            }
+
+            // اگر status=false درون 200 OK
+            if (result.status === false) {
+                setTrackError(result.message || 'کد پیگیری معتبر نیست.');
+                if (result.message && result.message && Array.isArray(result.message)) {
+                    setTrackError(result.message);
+                }
+                return;
+            }
+
+            // اگر status=true و data موجود باشد
+            if (result.status === true && result.data) {
+                setTrackedReport(result.data);
+            } else {
+                setTrackError(result.message || 'هیچ داده‌ای دریافت نشد.');
+            }
+        } catch (err) {
+            console.error('خطا در جستجوی پیگیری:', err);
+            setTrackError(err.message || 'خطا در ارتباط با سرور');
+        }
+    };
+    // =========================================================
 
     useEffect(() => {
         fetchReports();
@@ -525,12 +594,34 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
 
     return (
         <>
+            <section className={styles.trackSearchSection}>
+                <h4>پیگیری گزارش</h4>
+                <div className={styles.trackSearchControls}>
+                    <input
+                        type="text"
+                        placeholder="کد پیگیری را وارد کنید"
+                        value={searchCode}
+                        onChange={(e) => setSearchCode(e.target.value)}
+                        className={styles.trackInput}
+                    />
+                    <button
+                        onClick={handleTrackSearch}
+                        className={styles.trackSearchBtn}
+                    >
+                        جستجوی پیگیری
+                    </button>
+                </div>
+                {trackError && <p className={styles.trackError}>{trackError}</p>}
+            </section>
+
             {isAdmin && (
                 <section className={styles.filterSection}>
                     <h3>فیلتر داینامیک گزارش‌ها</h3>
 
                     {loading && filterOptions.length === 0 ? (
-                        <div className={styles.loader}>در حال بارگذاری گزینه‌های فیلتر...</div>
+                        <div className={styles.loader}>
+                            در حال بارگذاری گزینه‌های فیلتر...
+                        </div>
                     ) : filterOptions.length === 0 ? (
                         <p className={styles.noFilters}>گزینه‌ای برای فیلتر یافت نشد.</p>
                     ) : (
@@ -600,7 +691,6 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
                                     }
 
                                     if (type === 'date') {
-                                        // rawValue یک رشته YYYY-MM-DD است. اگر خالی نباشد، یک moment بسازیم.
                                         const pickerValue = rawValue
                                             ? moment(rawValue, 'YYYY-MM-DD')
                                             : null;
@@ -633,7 +723,10 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
                                     return null;
                                 })}
 
-                                <button onClick={performDynamicSearch} className={styles.searchBtn}>
+                                <button
+                                    onClick={performDynamicSearch}
+                                    className={styles.searchBtn}
+                                >
                                     جستجوی دینامیک
                                 </button>
                             </div>
@@ -646,7 +739,11 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
                 <section className={styles.filterSection}>
                     <h3>فیلتر گزارش‌ها</h3>
                     <div className={styles.filterControls}>
-                        <select name="status" value={filters.status} onChange={handleFilterChange}>
+                        <select
+                            name="status"
+                            value={filters.status}
+                            onChange={handleFilterChange}
+                        >
                             <option value="">همه وضعیت‌ها</option>
                             <option value="pending">در انتظار</option>
                             <option value="in_progress">در حال انجام</option>
@@ -664,11 +761,18 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
                                 </option>
                             ))}
                         </select>
-                        <select name="sort" value={filters.sort} onChange={handleFilterChange}>
+                        <select
+                            name="sort"
+                            value={filters.sort}
+                            onChange={handleFilterChange}
+                        >
                             <option value="latest">جدیدترین</option>
                             <option value="oldest">قدیمی‌ترین</option>
                         </select>
-                        <button onClick={() => fetchFilteredReports(1)} className={styles.searchBtn}>
+                        <button
+                            onClick={() => fetchFilteredReports(1)}
+                            className={styles.searchBtn}
+                        >
                             جستجو
                         </button>
                     </div>
@@ -843,12 +947,14 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
                             <strong>مکان:</strong> {selectedReport.location || 'نامشخص'}
                         </p>
                         <p>
-                            <strong>موقعیت جغرافیایی:</strong> {selectedReport.lat},{' '}
-                            {selectedReport.long}
+                            <strong>موقعیت جغرافیایی:</strong>{' '}
+                            {selectedReport.lat}, {selectedReport.long}
                         </p>
                         <p>
                             <strong>تاریخ ایجاد:</strong>{' '}
-                            {new Date(selectedReport.created_at).toLocaleDateString('fa-IR')}
+                            {new Date(selectedReport.created_at).toLocaleDateString(
+                                'fa-IR'
+                            )}
                         </p>
                         <div className={styles.images}>
                             <p>
