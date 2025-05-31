@@ -22,8 +22,8 @@ const NewReportForm = ({ categories, regions, fetchReports }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [mapCenter, setMapCenter] = useState([36.8392, 54.4342]);
 
-    // حداکثر اندازه فایل (مثلاً ۵ مگابایت)
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+    // حداکثر اندازه فایل (مثلاً 1 مگابایت)
+    const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB in bytes
 
     // تابع Debounce
     const debounce = (func, delay) => {
