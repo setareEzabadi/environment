@@ -44,19 +44,14 @@ const Reports = () => {
         };
     }, []);
 
-    // دریافت دسته‌بندی‌ها
+    // دریافت دسته‌بندی‌ها (بدون نیاز به توکن)
     const fetchCategories = async () => {
         const token = localStorage.getItem('auth_token');
-        if (!token) {
-            toast.error('لطفا ابتدا وارد شوید.');
-            return;
-        }
-
         try {
             const response = await fetch(`${env.baseUrl}api/getCategories`, {
                 headers: {
-                    Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',
+                    ...(token && { Authorization: `Bearer ${token}` }),
                 },
             });
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -68,19 +63,14 @@ const Reports = () => {
         }
     };
 
-    // دریافت مناطق
+    // دریافت مناطق (بدون نیاز به توکن)
     const fetchRegions = async () => {
         const token = localStorage.getItem('auth_token');
-        if (!token) {
-            toast.error('لطفا ابتدا وارد شوید.');
-            return;
-        }
-
         try {
             const response = await fetch(`${env.baseUrl}api/getRegions`, {
                 headers: {
-                    Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',
+                    ...(token && { Authorization: `Bearer ${token}` }),
                 },
             });
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
