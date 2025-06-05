@@ -7,6 +7,8 @@ import {
     FaSignOutAlt,
     FaChevronDown,
     FaChevronUp,
+    FaTachometerAlt,
+    FaUsers, // Added for users management icon
 } from "react-icons/fa";
 import moment from "jalali-moment";
 import styles from "./DashboardKarbar.module.css";
@@ -15,9 +17,23 @@ import Stats from "./Stats";
 import Profile from "./Profile";
 import GetReports from "./GetReports";
 import CategoryManagement from "./CategoryManagement";
+import AdminDashboard from "./AdminDashboard";
+import UserManagement from "./UserManagement"; // Import new component
 import env from "../../env";
 
 const sections = [
+    {
+        key: "adminDashboard",
+        label: "داشبورد ادمین",
+        icon: FaTachometerAlt,
+        adminOnly: true,
+    },
+    {
+        key: "users",
+        label: "مدیریت کاربران",
+        icon: FaUsers,
+        adminOnly: true,
+    },
     {
         key: "reports",
         label: "گزارش‌ها",
@@ -33,13 +49,13 @@ const sections = [
 ];
 
 const DashboardKarbar = () => {
-    const [active, setActive] = useState("Getreports");
+    const [active, setActive] = useState("");
     const [openSubMenu, setOpenSubMenu] = useState(null);
     const [isAdmin, setIsAdmin] = useState(false);
     const [user, setUser] = useState({ name: "", family: "", avatar: "" });
     const [currentTime, setCurrentTime] = useState(new Date());
 
-    // بررسی نقش کاربر و دریافت اطلاعات کاربر
+    // Check user role and set default active section
     useEffect(() => {
         const checkUserRole = async () => {
             const userData = localStorage.getItem("auth_user");
@@ -53,16 +69,18 @@ const DashboardKarbar = () => {
                         family: parsedUser.family || "",
                         avatar: parsedUser.avatar ? `${env.baseUrl}${parsedUser.avatar}` : "",
                     });
+                    setActive(isAdminUser ? "adminDashboard" : "Getreports");
                 } catch (err) {
                     console.error("خطا در پارس داده کاربر:", err);
                     setIsAdmin(false);
+                    setActive("Getreports");
                 }
             }
         };
         checkUserRole();
     }, []);
 
-    // به‌روزرسانی ساعت هر ثانیه
+    // Update time every second
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentTime(new Date());
@@ -78,7 +96,6 @@ const DashboardKarbar = () => {
         setOpenSubMenu(openSubMenu === key ? null : key);
     };
 
-    // فرمت تاریخ و ساعت
     const formattedDate = moment(currentTime).locale("fa").format("jYYYY/jMM/jDD");
     const formattedTime = currentTime.toLocaleTimeString("fa-IR", {
         hour: "2-digit",
@@ -89,7 +106,6 @@ const DashboardKarbar = () => {
     return (
         <div className={styles.container}>
             <aside className={styles.sidebar}>
-                {/* بخش پروفایل کاربر */}
                 <div className={styles.userProfile}>
                     {user.avatar ? (
                         <img src={user.avatar} alt="آواتار کاربر" className={styles.userAvatar} />
@@ -103,48 +119,50 @@ const DashboardKarbar = () => {
                     </span>
                 </div>
                 <ul>
-                    {sections.map((section) => {
-                        const Icon = section.icon;
-                        const isActive = active === section.key || section.subItems?.some((sub) => sub.key === active);
-                        const filteredSubItems = section.subItems?.filter(
-                            (subItem) => !subItem.adminOnly || (subItem.adminOnly && isAdmin)
-                        );
-                        return (
-                            <li key={section.key}>
-                                <div
-                                    className={`${styles.menuItem} ${isActive ? styles.active : ""}`}
-                                    onClick={() => {
-                                        if (filteredSubItems && filteredSubItems.length > 0) {
-                                            toggleSubMenu(section.key);
-                                        } else {
-                                            setActive(section.key);
-                                        }
-                                    }}
-                                >
-                                    <Icon className={styles.icon} />
-                                    <span>{section.label}</span>
-                                    {filteredSubItems && filteredSubItems.length > 0 && (
-                                        <span className={styles.chevron}>
-                                            {openSubMenu === section.key ? <FaChevronUp /> : <FaChevronDown />}
-                                        </span>
+                    {sections
+                        .filter((section) => !section.adminOnly || (section.adminOnly && isAdmin))
+                        .map((section) => {
+                            const Icon = section.icon;
+                            const isActive = active === section.key || section.subItems?.some((sub) => sub.key === active);
+                            const filteredSubItems = section.subItems?.filter(
+                                (subItem) => !subItem.adminOnly || (subItem.adminOnly && isAdmin)
+                            );
+                            return (
+                                <li key={section.key}>
+                                    <div
+                                        className={`${styles.menuItem} ${isActive ? styles.active : ""}`}
+                                        onClick={() => {
+                                            if (filteredSubItems && filteredSubItems.length > 0) {
+                                                toggleSubMenu(section.key);
+                                            } else {
+                                                setActive(section.key);
+                                            }
+                                        }}
+                                    >
+                                        <Icon className={styles.icon} />
+                                        <span>{section.label}</span>
+                                        {filteredSubItems && filteredSubItems.length > 0 && (
+                                            <span className={styles.chevron}>
+                                                {openSubMenu === section.key ? <FaChevronUp /> : <FaChevronDown />}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {filteredSubItems && openSubMenu === section.key && (
+                                        <ul className={styles.subMenu}>
+                                            {filteredSubItems.map((subItem) => (
+                                                <li
+                                                    key={subItem.key}
+                                                    className={`${styles.subMenuItem} ${active === subItem.key ? styles.active : ""}`}
+                                                    onClick={() => setActive(subItem.key)}
+                                                >
+                                                    <span>{subItem.label}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
                                     )}
-                                </div>
-                                {filteredSubItems && openSubMenu === section.key && (
-                                    <ul className={styles.subMenu}>
-                                        {filteredSubItems.map((subItem) => (
-                                            <li
-                                                key={subItem.key}
-                                                className={`${styles.subMenuItem} ${active === subItem.key ? styles.active : ""}`}
-                                                onClick={() => setActive(subItem.key)}
-                                            >
-                                                <span>{subItem.label}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </li>
-                        );
-                    })}
+                                </li>
+                            );
+                        })}
                     <li className={styles.logout} onClick={handleLogout}>
                         <FaSignOutAlt className={styles.icon} />
                         <span>خروج</span>
@@ -152,12 +170,9 @@ const DashboardKarbar = () => {
                 </ul>
             </aside>
             <div className={styles.contentWrapper}>
-                {/* تاریخ و ساعت */}
-                {/* <div className={styles.datetime}>
-                    <span>{formattedDate}</span>
-                    <span>{formattedTime}</span>
-                </div> */}
                 <main className={styles.content}>
+                    {active === "adminDashboard" && isAdmin && <AdminDashboard />}
+                    {active === "users" && isAdmin && <UserManagement />}
                     {active === "Getreports" && <GetReports />}
                     {active === "categories" && isAdmin && <CategoryManagement />}
                     {active === "campaigns" && <Campaigns />}
