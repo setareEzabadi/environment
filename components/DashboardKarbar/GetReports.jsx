@@ -3,7 +3,11 @@ import styles from "./DashboardKarbar.module.css";
 import env from "../../env";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { FaTrash, FaPrint, FaInfoCircle, FaPlus, FaMinus, FaQuestionCircle } from "react-icons/fa";
+import { FaTrash, FaPrint, FaInfoCircle, FaPlus, FaMinus, FaQuestionCircle, FaEdit } from "react-icons/fa";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterMomentJalaali } from "@mui/x-date-pickers/AdapterMomentJalaali";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import moment from "jalali-moment";
 
 const GetReports = () => {
     const [reports, setReports] = useState([]);
@@ -15,8 +19,8 @@ const GetReports = () => {
     const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, links: [] });
     const [showHelp, setShowHelp] = useState(false);
     const [selectedReport, setSelectedReport] = useState(null);
+    const [editStatus, setEditStatus] = useState(null); // برای پاپ‌آپ تغییر وضعیت
 
-    // تابع بررسی نقش کاربر
     const checkUserRole = async () => {
         const userData = localStorage.getItem("auth_user");
         if (userData) {
@@ -32,13 +36,10 @@ const GetReports = () => {
                 toast.error("خطا در بارگذاری اطلاعات کاربر");
                 return false;
             }
-        } else {
-            setIsAdmin(false);
-            return false;
         }
+        return false;
     };
 
-    // تابع برای لود اولیه داده‌ها
     const fetchInitialData = async () => {
         const isAdminUser = await checkUserRole();
         await fetchReports(isAdminUser);
@@ -49,16 +50,11 @@ const GetReports = () => {
         fetchInitialData();
     }, []);
 
-    // تابع کمکی برای ارسال درخواست‌ها
     const sendRequest = async (url, method = "GET", body = null) => {
         const token = localStorage.getItem("auth_token");
         if (!token) throw new Error("توکن احراز هویت یافت نشد");
 
-        const headers = {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-        };
-
+        const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
         const options = { method, headers };
         if (body) options.body = JSON.stringify(body);
 
@@ -69,16 +65,13 @@ const GetReports = () => {
         return result;
     };
 
-    // تابع دریافت گزارش‌ها
     const fetchReports = async (isAdminUser) => {
         setLoading(true);
         try {
-            const endpoint = isAdminUser ? `${env.baseUrl}api/getReports` : `${env.baseUrl}api/user/reports`;
-            console.log("Requesting endpoint:", endpoint, "isAdminUser:", isAdminUser);
+            const endpoint = isAdminUser ? `${env.baseUrl}api/getReportsAdmin` : `${env.baseUrl}api/user/reports`;
             const result = await sendRequest(endpoint);
             setReports(Array.isArray(result.data) ? result.data : []);
             setPagination({ current_page: 1, last_page: 1, links: [] });
-            // toast.success("گزارش‌ها با موفقیت دریافت شدند");
         } catch (err) {
             setError(err.message || "خطا در دریافت گزارش‌ها");
             setReports([]);
@@ -92,32 +85,50 @@ const GetReports = () => {
         try {
             const result = await sendRequest(`${env.baseUrl}api/getCategories`);
             setCategories(Array.isArray(result.data) ? result.data : []);
-            // toast.success("دسته‌بندی‌ها با موفقیت دریافت شدند");
         } catch (err) {
             setError(err.message || "خطا در دریافت دسته‌بندی‌ها");
             toast.error(err.message || "خطا در دریافت دسته‌بندی‌ها");
         }
     };
 
-    const updateStatus = async (reportId, newStatus) => {
+    const fetchReport = async (reportId) => {
+        try {
+            const result = await sendRequest(`${env.baseUrl}api/getReport?report_id=${reportId}`);
+            return result.data;
+        } catch (err) {
+            toast.error(err.message || "خطا در دریافت گزارش");
+            return null;
+        }
+    };
+
+    const updateStatus = async (reportId, status, comment, doneAt) => {
+        setLoading(true);
         try {
             const result = await sendRequest(`${env.baseUrl}api/updateStatus`, "POST", {
                 report_id: reportId,
-                status: newStatus,
+                status,
+                comment,
+                done_at: doneAt,
             });
-            setReports(reports.map((report) => (report.id === reportId ? { ...report, status: newStatus } : report)));
-            toast.success("وضعیت گزارش با موفقیت به‌روزرسانی شد");
+            const updatedReport = await fetchReport(reportId);
+            if (isAdmin) {
+                setReports(reports.map((r) => (r.id === reportId ? updatedReport : r)));
+            } else {
+                setReports([updatedReport]);
+            }
+            toast.success("وضعیت و پاسخ با موفقیت ثبت شد");
         } catch (err) {
             toast.error(err.message || "خطا در به‌روزرسانی وضعیت");
+        } finally {
+            setLoading(false);
+            setEditStatus(null);
         }
     };
 
     const deleteReport = async (reportId) => {
         if (!window.confirm("آیا مطمئن هستید که می‌خواهید این گزارش را حذف کنید؟")) return;
         try {
-            const result = await sendRequest(`${env.baseUrl}api/destroyReport`, "POST", {
-                report_id: reportId,
-            });
+            await sendRequest(`${env.baseUrl}api/destroyReport`, "POST", { report_id: reportId });
             setReports(reports.filter((report) => report.id !== reportId));
             toast.success("گزارش با موفقیت حذف شد");
         } catch (err) {
@@ -127,9 +138,7 @@ const GetReports = () => {
 
     const storeReportAssistance = async (reportId) => {
         try {
-            const result = await sendRequest(`${env.baseUrl}api/storeReportAssistance`, "POST", {
-                report_id: reportId,
-            });
+            await sendRequest(`${env.baseUrl}api/storeReportAssistance`, "POST", { report_id: reportId });
             toast.success("داوطلب شدن برای کمک ثبت شد");
         } catch (err) {
             toast.error(err.message || "خطا در ثبت داوطلبی");
@@ -138,9 +147,7 @@ const GetReports = () => {
 
     const deleteReportAssistance = async (reportId) => {
         try {
-            const result = await sendRequest(`${env.baseUrl}api/deleteReportAssistance`, "POST", {
-                report_id: reportId,
-            });
+            await sendRequest(`${env.baseUrl}api/deleteReportAssistance`, "POST", { report_id: reportId });
             toast.success("داوطلبی برای کمک لغو شد");
         } catch (err) {
             toast.error(err.message || "خطا در لغو داوطلبی");
@@ -168,7 +175,6 @@ const GetReports = () => {
                 last_page: result.last_page || 1,
                 links: result.links || [],
             });
-            toast.success("گزارش‌های فیلترشده با موفقیت دریافت شدند");
         } catch (err) {
             setError(err.message || "خطا در فیلتر گزارش‌ها");
             setReports([]);
@@ -179,178 +185,57 @@ const GetReports = () => {
         }
     };
 
-    const getCategoryName = (report) => {
-        if (report.category && report.category.name) return report.category.name;
-        const category = categories.find((cat) => cat.id === report.category_id);
-        return category ? category.name : "بدون دسته‌بندی";
-    };
+    const getCategoryName = (report) => report.category?.name || categories.find((cat) => cat.id === report.category_id)?.name || "بدون دسته‌بندی";
+    const getRegionName = (report) => report.region?.name || report.region_id || "بدون منطقه";
 
-    const getRegionName = (report) => {
-        if (report.region && report.region.name) return report.region.name;
-        return report.region_id || "بدون منطقه";
-    };
-
-    // پرینت کل جدول
     const printTable = () => {
         const printWindow = window.open("", "_blank");
         printWindow.document.write(`
-      <html dir="rtl">
-        <head>
-          <title>چاپ گزارش‌ها</title>
-          <style>
-            body { font-family: 'iranSans', sans-serif; direction: rtl; padding: 20px; background: #f8fafc; }
-            h2 { text-align: center; color: #1e293b; margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); }
-            th, td { border: 1px solid #e2e8f0; padding: 12px; text-align: right; font-size: 14px; }
-            th { background: #f1f5f9; color: #1e293b; font-weight: 600; }
-            .statusBadge { padding: 6px 12px; border-radius: 12px; font-size: 12px; }
-            .pending { background: #fef3c7; color: #d97706; }
-            .in_progress { background: #dbeafe; color: #2563eb; }
-            .resolved { background: #d1fae5; color: #10b981; }
-          </style>
-        </head>
-        <body>
-          <h2>لیست گزارش‌ها</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>عنوان</th>
-                <th>وضعیت</th>
-                <th>دسته‌بندی</th>
-                <th>منطقه</th>
-                <th>مکان</th>
-                <th>تاریخ</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${reports
-                .map(
-                    (report, index) => `
-                <tr>
-                  <td>${index + 1}</td>
-                  <td>${report.title || "بدون عنوان"}</td>
-                  <td><span class="statusBadge ${report.status}">
-                    ${report.status === "pending" ? "در انتظار" : report.status === "in_progress" ? "در حال انجام" : "حل‌شده"}
-                  </span></td>
-                  <td>${getCategoryName(report)}</td>
-                  <td>${getRegionName(report)}</td>
-                  <td>${report.location || "نامشخص"}</td>
-                  <td>${new Date(report.created_at).toLocaleDateString("fa-IR")}</td>
-                </tr>
-              `
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </body>
-      </html>
-    `);
+            <html dir="rtl">
+                <head><title>چاپ گزارش‌ها</title><style>body{font-family:'iranSans',sans-serif;direction:rtl;padding:20px}h2{text-align:center}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:right}.statusBadge{padding:6px 12px;border-radius:12px}.pending{background:#fef3c7;color:#d97706}.in_progress{background:#dbeafe;color:#2563eb}.resolved{background:#d1fae5;color:#10b981}</style></head>
+                <body><h2>لیست گزارش‌ها</h2><table><thead><tr><th>#</th><th>عنوان</th><th>وضعیت</th><th>دسته‌بندی</th><th>منطقه</th><th>مکان</th><th>تاریخ</th></tr></thead><tbody>${reports.map((report, index) => `<tr><td>${index + 1}</td><td>${report.title || "بدون عنوان"}</td><td><span class="statusBadge ${report.status}">${report.status === "pending" ? "در انتظار" : report.status === "in_progress" ? "در حال انجام" : "حل‌شده"}</span></td><td>${getCategoryName(report)}</td><td>${getRegionName(report)}</td><td>${report.location || "نامشخص"}</td><td>${moment(report.created_at).locale("fa").format("jYYYY/jMM/jDD")}</td></tr>`).join("")}</tbody></table></body></html>
+        `);
         printWindow.document.close();
         printWindow.print();
     };
 
-    // پرینت گزارش خاص
     const printReport = (report) => {
         const printWindow = window.open("", "_blank");
         printWindow.document.write(`
-      <html dir="rtl">
-        <head>
-          <title>چاپ گزارش ${report.title || "بدون عنوان"}</title>
-          <style>
-            body { font-family: 'iranSans', sans-serif; direction: rtl; padding: 20px; background: #f8fafc; }
-            .report { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); }
-            h2 { text-align: center; color: #1e293b; margin-bottom: 20px; }
-            p { margin: 12px 0; font-size: 14px; color: #475569; }
-            .statusBadge { padding: 6px 12px; border-radius: 12px; font-size: 12px; }
-            .pending { background: #fef3c7; color: #d97706; }
-            .in_progress { background: #dbeafe; color: #2563eb; }
-            .resolved { background: #d1fae5; color: #10b981; }
-            .images { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
-            img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0; }
-          </style>
-        </head>
-        <body>
-          <div class="report">
-            <h2>${report.title || "بدون عنوان"}</h2>
-            <p><strong>وضعیت:</strong> <span class="statusBadge ${report.status}">
-              ${report.status === "pending" ? "در انتظار" : report.status === "in_progress" ? "در حال انجام" : "حل‌شده"}
-            </span></p>
-            <p><strong>توضیحات:</strong> ${report.description || "بدون توضیحات"}</p>
-            <p><strong>دسته‌بندی:</strong> ${getCategoryName(report)}</p>
-            <p><strong>منطقه:</strong> ${getRegionName(report)}</p>
-            <p><strong>مکان:</strong> ${report.location || "نامشخص"}</p>
-            <p><strong>موقعیت جغرافیایی:</strong> ${report.lat}, ${report.long}</p>
-            <p><strong>تاریخ ایجاد:</strong> ${new Date(report.created_at).toLocaleDateString("fa-IR")}</p>
-            <div class="images">
-              <p><strong>تصاویر:</strong></p>
-              ${report.images && report.images.length > 0
-                ? report.images
-                    .map(
-                        (image) => `
-                  <img src="${env.baseUrl}${image.image_url}" alt="تصویر گزارش" />
-                `
-                    )
-                    .join("")
-                : "<p>بدون تصویر</p>"}
-            </div>
-          </div>
-        </body>
-      </html>
-    `);
+            <html dir="rtl"><head><title>چاپ گزارش ${report.title || "بدون عنوان"}</title><style>body{font-family:'iranSans',sans-serif;direction:rtl;padding:20px}.report{max-width:800px;margin:auto;padding:20px;border-radius:12px}.statusBadge{padding:6px 12px;border-radius:12px}.pending{background:#fef3c7;color:#d97706}.in_progress{background:#dbeafe;color:#2563eb}.resolved{background:#d1fae5;color:#10b981}</style></head>
+            <body><div class="report"><h2>${report.title || "بدون عنوان"}</h2><p><strong>وضعیت:</strong><span class="statusBadge ${report.status}">${report.status === "pending" ? "در انتظار" : report.status === "in_progress" ? "در حال انجام" : "حل‌شده"}</span></p><p><strong>توضیحات:</strong>${report.description || "بدون توضیحات"}</p><p><strong>دسته‌بندی:</strong>${getCategoryName(report)}</p><p><strong>منطقه:</strong>${getRegionName(report)}</p><p><strong>مکان:</strong>${report.location || "نامشخص"}</p><p><strong>موقعیت جغرافیایی:</strong>${report.lat}, ${report.long}</p><p><strong>تاریخ ایجاد:</strong>${moment(report.created_at).locale("fa").format("jYYYY/jMM/jDD")}</p>${report.replies && report.replies.length > 0 ? `<p><strong>جواب‌ها:</strong><ul>${report.replies.map(r => `<li>ادمین: ${r.admin.name} ${r.admin.family} - توضیح: ${r.comment || "بدون توضیح"} - تاریخ انجام: ${moment(r.done_at).locale("fa").format("jYYYY/jMM/jDD")}</li>`).join("")}</ul></p>` : "<p>بدون جواب</p>"}</div></body></html>
+        `);
         printWindow.document.close();
         printWindow.print();
     };
 
-    // باز کردن پاپ‌آپ
-    const openPopup = (report) => {
-        setSelectedReport(report);
-    };
-
-    // بستن پاپ‌آپ
-    const closePopup = () => {
-        setSelectedReport(null);
-    };
+    const openPopup = (report) => setSelectedReport(report);
+    const closePopup = () => setSelectedReport(null);
+    const openEditStatus = (report) => setEditStatus(report);
+    const closeEditStatus = () => setEditStatus(null);
 
     return (
         <div className={styles.getReports}>
             <ToastContainer rtl position="bottom-right" autoClose={3000} />
             <div className={styles.header}>
                 <h3>لیست گزارش‌ها</h3>
-                <button onClick={() => setShowHelp(!showHelp)} className={styles.helpButton} title="راهنما">
+                <button onClick={() => setShowHelp(!showHelp)} className={styles.helpButton}>
                     <FaQuestionCircle />
                 </button>
             </div>
             {showHelp && (
                 <div className={styles.helpSection}>
-                    <h4>راهنمای استفاده</h4>
-                    <p>در این صفحه می‌توانید گزارش‌های ثبت‌شده را مشاهده و مدیریت کنید.</p>
+                    <h4>راهنما</h4>
+                    <p>گزارش‌های خود را مدیریت کنید.</p>
                     <ul>
-                        <li>
-                            <strong>فیلتر گزارش‌ها:</strong> از فیلترهای بالا برای جستجوی گزارش‌ها بر اساس وضعیت، دسته‌بندی، یا ترتیب استفاده کنید.
-                        </li>
-                        <li>
-                            <strong>داوطلب شدن:</strong> با کلیک روی آیکون «+» می‌توانید برای کمک به حل مشکل داوطلب شوید.
-                        </li>
-                        <li>
-                            <strong>لغو داوطلبی:</strong> با کلیک روی آیکون «−» می‌توانید داوطلبی خود را لغو کنید.
-                        </li>
-                        {isAdmin && (
-                            <>
-                                <li>
-                                    <strong>تغییر وضعیت:</strong> وضعیت گزارش‌ها را به «در انتظار»، «در حال انجام»، یا «حل‌شده» تغییر دهید.
-                                </li>
-                                <li>
-                                    <strong>حذف گزارش:</strong> گزارش‌های غیرضروری را حذف کنید.
-                                </li>
-                            </>
-                        )}
+                        <li><strong>فیلتر:</strong> گزارش‌ها رو بر اساس وضعیت یا دسته‌بندی فیلتر کنید.</li>
+                        <li><strong>داوطلب شدن:</strong> با آیکون + داوطلب کمک شوید.</li>
+                        {isAdmin && <li><strong>تغییر وضعیت:</strong> با آیکون ویرایش، وضعیت رو تغییر دهید.</li>}
                     </ul>
                 </div>
             )}
             {error && <span className={styles.error}>{error}</span>}
 
-            {/* فیلتر گزارش‌ها */}
             <section className={styles.filterSection}>
                 <h3>فیلتر گزارش‌ها</h3>
                 <div className={styles.filterControls}>
@@ -362,29 +247,20 @@ const GetReports = () => {
                     </select>
                     <select name="category_id" value={filters.category_id} onChange={handleFilterChange}>
                         <option value="">همه دسته‌بندی‌ها</option>
-                        {categories.map((cat) => (
-                            <option key={cat.id} value={cat.id}>
-                                {cat.name}
-                            </option>
-                        ))}
+                        {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                     </select>
                     <select name="sort" value={filters.sort} onChange={handleFilterChange}>
                         <option value="latest">جدیدترین</option>
                         <option value="oldest">قدیمی‌ترین</option>
                     </select>
-                    <button onClick={() => fetchFilteredReports(1)} className={styles.searchBtn}>
-                        جستجو
-                    </button>
+                    <button onClick={() => fetchFilteredReports(1)} className={styles.searchBtn}>جستجو</button>
                 </div>
             </section>
 
-            {/* لیست گزارش‌ها */}
             <section className={styles.reportsSection}>
                 <div className={styles.tableHeader}>
                     <h3>لیست گزارش‌ها</h3>
-                    <button onClick={printTable} className={styles.printTableBtn}>
-                        <FaPrint /> چاپ کل جدول
-                    </button>
+                    <button onClick={printTable} className={styles.printTableBtn}><FaPrint /> چاپ کل جدول</button>
                 </div>
                 {loading ? (
                     <div className={styles.loader}>در حال بارگذاری...</div>
@@ -403,6 +279,7 @@ const GetReports = () => {
                                         <th>منطقه</th>
                                         <th>مکان</th>
                                         <th>تاریخ</th>
+                                        <th>جواب‌ها</th>
                                         <th>عملیات</th>
                                     </tr>
                                 </thead>
@@ -411,67 +288,29 @@ const GetReports = () => {
                                         <tr key={report.id}>
                                             <td>{index + 1}</td>
                                             <td>{report.title || "بدون عنوان"}</td>
-                                            <td>
-                                                <span className={`${styles.statusBadge} ${styles[report.status]}`}>
-                                                    {report.status === "pending"
-                                                        ? "در انتظار"
-                                                        : report.status === "in_progress"
-                                                            ? "در حال انجام"
-                                                            : "حل‌شده"}
-                                                </span>
-                                            </td>
+                                            <td><span className={`${styles.statusBadge} ${styles[report.status]}`}>{report.status === "pending" ? "در انتظار" : report.status === "in_progress" ? "در حال انجام" : "حل‌شده"}</span></td>
                                             <td>{getCategoryName(report)}</td>
                                             <td>{getRegionName(report)}</td>
                                             <td>{report.location || "نامشخص"}</td>
-                                            <td>{new Date(report.created_at).toLocaleDateString("fa-IR")}</td>
+                                            <td>{moment(report.created_at).locale("fa").format("jYYYY/jMM/jDD")}</td>
+                                            <td>
+                                                {report.replies && report.replies.length > 0 ? (
+                                                    <ul>
+                                                        {report.replies.map((reply) => (
+                                                            <li key={reply.id}>ادمین: {reply.admin.name} {reply.admin.family} - توضیح: {reply.comment || "بدون توضیح"} - تاریخ: {moment(reply.done_at).locale("fa").format("jYYYY/jMM/jDD")}</li>
+                                                        ))}
+                                                    </ul>
+                                                ) : "بدون جواب"}
+                                            </td>
                                             <td className={styles.actions}>
-                                                <button
-                                                    onClick={() => openPopup(report)}
-                                                    className={styles.detailsBtn}
-                                                    data-tooltip="نمایش جزئیات"
-                                                >
-                                                    <FaInfoCircle />
-                                                </button>
-                                                <button
-                                                    onClick={() => printReport(report)}
-                                                    className={styles.printBtn}
-                                                    data-tooltip="چاپ گزارش"
-                                                >
-                                                    <FaPrint />
-                                                </button>
-                                                <button
-                                                    onClick={() => storeReportAssistance(report.id)}
-                                                    className={styles.assistanceBtn}
-                                                    data-tooltip="داوطلب شدن برای کمک"
-                                                >
-                                                    <FaPlus />
-                                                </button>
-                                                <button
-                                                    onClick={() => deleteReportAssistance(report.id)}
-                                                    className={styles.deleteAssistanceBtn}
-                                                    data-tooltip="لغو داوطلبی برای کمک"
-                                                >
-                                                    <FaMinus />
-                                                </button>
+                                                <button onClick={() => openPopup(report)} className={styles.detailsBtn} data-tooltip="نمایش جزئیات"><FaInfoCircle /></button>
+                                                <button onClick={() => printReport(report)} className={styles.printBtn} data-tooltip="چاپ گزارش"><FaPrint /></button>
+                                                <button onClick={() => storeReportAssistance(report.id)} className={styles.assistanceBtn} data-tooltip="داوطلب شدن"><FaPlus /></button>
+                                                <button onClick={() => deleteReportAssistance(report.id)} className={styles.deleteAssistanceBtn} data-tooltip="لغو داوطلبی"><FaMinus /></button>
                                                 {isAdmin && (
                                                     <>
-                                                        <button
-                                                            onClick={() => deleteReport(report.id)}
-                                                            className={styles.deleteReportBtn}
-                                                            data-tooltip="حذف گزارش"
-                                                        >
-                                                            <FaTrash />
-                                                        </button>
-                                                        <select
-                                                            value={report.status}
-                                                            onChange={(e) => updateStatus(report.id, e.target.value)}
-                                                            className={styles.statusSelect}
-                                                            data-tooltip="تغییر وضعیت"
-                                                        >
-                                                            <option value="pending">در انتظار</option>
-                                                            <option value="in_progress">در حال انجام</option>
-                                                            <option value="resolved">حل‌شده</option>
-                                                        </select>
+                                                        <button onClick={() => deleteReport(report.id)} className={styles.deleteReportBtn} data-tooltip="حذف گزارش"><FaTrash /></button>
+                                                        <button onClick={() => openEditStatus(report)} className={styles.detailsBtn} data-tooltip="تغییر وضعیت"><FaEdit /></button>
                                                     </>
                                                 )}
                                             </td>
@@ -482,78 +321,69 @@ const GetReports = () => {
                         )}
                     </div>
                 )}
-
-                {pagination.links.length > 0 && (
-                    <div className={styles.pagination}>
-                        {pagination.links.map((link, index) => (
-                            <button
-                                key={index}
-                                onClick={() => handlePageChange(link.url)}
-                                disabled={!link.url}
-                                className={link.active ? styles.activePage : ""}
-                            >
-                                {link.label === "« Previous" ? "قبلی" : link.label === "Next »" ? "بعدی" : link.label}
-                            </button>
-                        ))}
-                    </div>
-                )}
             </section>
 
-            {/* پاپ‌آپ جزئیات */}
             {selectedReport && (
                 <div className={styles.popup}>
                     <div className={styles.popupContent}>
                         <button onClick={closePopup} className={styles.closeBtn}>×</button>
                         <h3>{selectedReport.title || "بدون عنوان"}</h3>
-                        <p>
-                            <strong>وضعیت:</strong>{" "}
-                            <span className={`${styles.statusBadge} ${styles[selectedReport.status]}`}>
-                                {selectedReport.status === "pending"
-                                    ? "در انتظار"
-                                    : selectedReport.status === "in_progress"
-                                        ? "در حال انجام"
-                                        : "حل‌شده"}
-                            </span>
-                        </p>
-                        <p>
-                            <strong>توضیحات:</strong> {selectedReport.description || "بدون توضیحات"}
-                        </p>
-                        <p>
-                            <strong>دسته‌بندی:</strong> {getCategoryName(selectedReport)}
-                        </p>
-                        <p>
-                            <strong>منطقه:</strong> {getRegionName(selectedReport)}
-                        </p>
-                        <p>
-                            <strong>مکان:</strong> {selectedReport.location || "نامشخص"}
-                        </p>
-                        <p>
-                            <strong>موقعیت جغرافیایی:</strong> {selectedReport.lat}, {selectedReport.long}
-                        </p>
-                        <p>
-                            <strong>تاریخ ایجاد:</strong> {new Date(selectedReport.created_at).toLocaleDateString("fa-IR")}
-                        </p>
+                        <p><strong>وضعیت:</strong> <span className={`${styles.statusBadge} ${styles[selectedReport.status]}`}>{selectedReport.status === "pending" ? "در انتظار" : selectedReport.status === "in_progress" ? "در حال انجام" : "حل‌شده"}</span></p>
+                        <p><strong>توضیحات:</strong> {selectedReport.description || "بدون توضیحات"}</p>
+                        <p><strong>دسته‌بندی:</strong> {getCategoryName(selectedReport)}</p>
+                        <p><strong>منطقه:</strong> {getRegionName(selectedReport)}</p>
+                        <p><strong>مکان:</strong> {selectedReport.location || "نامشخص"}</p>
+                        <p><strong>موقعیت جغرافیایی:</strong> {selectedReport.lat}, {selectedReport.long}</p>
+                        <p><strong>تاریخ ایجاد:</strong> {moment(selectedReport.created_at).locale("fa").format("jYYYY/jMM/jDD")}</p>
                         <div className={styles.images}>
-                            <p>
-                                <strong>تصاویر:</strong>
-                            </p>
-                            {selectedReport.images && selectedReport.images.length > 0 ? (
-                                <div className={styles.imageGallery}>
-                                    {selectedReport.images.map((image) => (
-                                        <img
-                                            key={image.id}
-                                            src={`${env.baseUrl}${image.image_url}`}
-                                            alt={`تصویر گزارش ${selectedReport.id}`}
-                                            className={styles.reportImage}
-                                        />
+                            <p><strong>جواب‌ها:</strong></p>
+                            {selectedReport.replies && selectedReport.replies.length > 0 ? (
+                                <ul>
+                                    {selectedReport.replies.map((reply) => (
+                                        <li key={reply.id}>ادمین: {reply.admin.name} {reply.admin.family} - توضیح: {reply.comment || "بدون توضیح"} - تاریخ: {moment(reply.done_at).locale("fa").format("jYYYY/jMM/jDD")}</li>
                                     ))}
-                                </div>
-                            ) : (
-                                <p>بدون تصویر</p>
-                            )}
+                                </ul>
+                            ) : <p>بدون جواب</p>}
                         </div>
-                        <button onClick={() => printReport(selectedReport)} className={styles.printPopupBtn}>
-                            <FaPrint /> چاپ گزارش
+                        <button onClick={() => printReport(selectedReport)} className={styles.printPopupBtn}><FaPrint /> چاپ گزارش</button>
+                    </div>
+                </div>
+            )}
+
+            {editStatus && (
+                <div className={styles.popup}>
+                    <div className={styles.popupContent}>
+                        <button onClick={closeEditStatus} className={styles.closeBtn}>×</button>
+                        <h3>تغییر وضعیت گزارش</h3>
+                        <select
+                            value={editStatus.status}
+                            onChange={(e) => setEditStatus({ ...editStatus, status: e.target.value })}
+                            className={styles.filterSelect}
+                        >
+                            <option value="pending">در انتظار</option>
+                            <option value="in_progress">در حال انجام</option>
+                            <option value="resolved">حل‌شده</option>
+                        </select>
+                        <textarea
+                            value={editStatus.comment || ""}
+                            onChange={(e) => setEditStatus({ ...editStatus, comment: e.target.value })}
+                            placeholder="توضیحات"
+                            className={styles.filterInput}
+                            rows="3"
+                        />
+                        <LocalizationProvider dateAdapter={AdapterMomentJalaali}>
+                            <DatePicker
+                                value={editStatus.done_at ? moment(editStatus.done_at, "YYYY-MM-DD") : null}
+                                onChange={(newValue) => setEditStatus({ ...editStatus, done_at: newValue.format("YYYY-MM-DD") })}
+                                renderInput={(params) => <input {...params} className={styles.filterInput} />}
+                            />
+                        </LocalizationProvider>
+                        <button
+                            onClick={() => updateStatus(editStatus.id, editStatus.status, editStatus.comment, editStatus.done_at)}
+                            className={styles.runQueryBtn}
+                            disabled={loading}
+                        >
+                            ثبت تغییرات
                         </button>
                     </div>
                 </div>
