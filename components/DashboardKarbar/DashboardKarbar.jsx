@@ -8,7 +8,8 @@ import {
     FaChevronDown,
     FaChevronUp,
     FaTachometerAlt,
-    FaUsers, // Added for users management icon
+    FaUsers,
+    FaChartBar,
 } from "react-icons/fa";
 import moment from "jalali-moment";
 import styles from "./DashboardKarbar.module.css";
@@ -18,7 +19,8 @@ import Profile from "./Profile";
 import GetReports from "./GetReports";
 import CategoryManagement from "./CategoryManagement";
 import AdminDashboard from "./AdminDashboard";
-import UserManagement from "./UserManagement"; // Import new component
+import UserManagement from "./UserManagement";
+import ReportBuilder from "./ReportBuilder";
 import env from "../../env";
 
 const sections = [
@@ -32,6 +34,12 @@ const sections = [
         key: "users",
         label: "مدیریت کاربران",
         icon: FaUsers,
+        adminOnly: true,
+    },
+    {
+        key: "reportBuilder",
+        label: "گزارش ساز",
+        icon: FaChartBar,
         adminOnly: true,
     },
     {
@@ -55,7 +63,6 @@ const DashboardKarbar = () => {
     const [user, setUser] = useState({ name: "", family: "", avatar: "" });
     const [currentTime, setCurrentTime] = useState(new Date());
 
-    // Check user role and set default active section
     useEffect(() => {
         const checkUserRole = async () => {
             const userData = localStorage.getItem("auth_user");
@@ -80,7 +87,6 @@ const DashboardKarbar = () => {
         checkUserRole();
     }, []);
 
-    // Update time every second
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentTime(new Date());
@@ -173,6 +179,7 @@ const DashboardKarbar = () => {
                 <main className={styles.content}>
                     {active === "adminDashboard" && isAdmin && <AdminDashboard />}
                     {active === "users" && isAdmin && <UserManagement />}
+                    {active === "reportBuilder" && isAdmin && <ReportBuilder />} {/* اضافه کردن کامپوننت جدید */}
                     {active === "Getreports" && <GetReports />}
                     {active === "categories" && isAdmin && <CategoryManagement />}
                     {active === "campaigns" && <Campaigns />}
