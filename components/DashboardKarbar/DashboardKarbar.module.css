@@ -1223,6 +1223,37 @@
   border-radius: 10px;
 }
 
+/* اضافه کردن به انتهای فایل */
+.statusSelect {
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #ffffff;
+  transition: all 0.3s ease;
+}
+
+.statusSelect:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  outline: none;
+}
+
+.popupContent textarea {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+  resize: vertical;
+}
+
+.popupContent .filterInput {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
 /* CAMPAIGNS */
 .campaignsUser {
   max-width: 1200px;
