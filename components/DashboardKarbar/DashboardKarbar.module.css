@@ -1681,6 +1681,28 @@
   direction: rtl;
 }
 
+/* Print Button */
+.printButtonWrapper {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.printButton {
+  padding: 0.75rem 1.5rem;
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.printButton:hover {
+  background: #059669;
+}
+
 /* Section Title */
 .sectionTitle {
   font-size: 1.5rem;
@@ -1772,6 +1794,23 @@
 .barChart {
   width: 100%;
   height: 100%;
+  overflow: visible;
+}
+
+.bar {
+  transition: height 0.5s ease, fill 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.bar:hover {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+.barLabel {
+  font-family: iranSans, sans-serif !important;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .chartLegend {
@@ -1818,6 +1857,7 @@
 }
 
 .tableWrapper {
+  width: 100%;
   overflow-x: auto;
 }
 
@@ -1852,6 +1892,209 @@
 
 .table tr:hover {
   background: #f8fafc;
+}
+
+/* Print-specific styles */
+@media print {
+  .adminDashboard {
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 5mm;
+    box-shadow: none;
+    background: #ffffff;
+    overflow: visible !important;
+    @page {
+      size: A4;
+      margin: 10mm;
+    }
+  }
+
+  /* مخفی کردن دکمه چاپ */
+  .printButtonWrapper,
+  .printButton {
+    display: none;
+  }
+
+  /* تنظیم کارت‌ها */
+  .summaryCards {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    page-break-after: auto;
+  }
+
+  .card {
+    box-shadow: none;
+    border: 1px solid #000000;
+    padding: 0.3rem;
+    font-size: 0.7rem;
+  }
+
+  .card h3 {
+    font-size: 0.6rem;
+    color: #000000;
+    margin-bottom: 0.2rem;
+  }
+
+  .card p {
+    font-size: 0.8rem;
+    color: #000000;
+  }
+
+  /* تنظیم نمودارها */
+  .chartsSection {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    page-break-after: auto;
+  }
+
+  .chartContainer {
+    box-shadow: none;
+    border: 1px solid #000000;
+    padding: 0.3rem;
+    page-break-inside: avoid;
+  }
+
+  .chartContainer h3 {
+    font-size: 0.7rem;
+    color: #000000;
+    margin-bottom: 0.3rem;
+  }
+
+  .chartWrapper {
+    height: auto;
+    max-width: 100%;
+    overflow: hidden;
+    display: block;
+  }
+
+  .pieChart {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto;
+  }
+
+  .barChart {
+    width: 100%;
+    height: 100px;
+    overflow: hidden;
+  }
+
+  .barLabel {
+    font-size: 1.8;
+    color: #000000;
+    text-shadow: none;
+  }
+
+  .chartLegend {
+    gap: 0.3rem;
+    justify-content: center;
+  }
+
+  .legendItem {
+    font-size: 0.6rem;
+    color: #000000;
+  }
+
+  .legendColor {
+    width: 8px;
+    height: 8px;
+  }
+
+  /* تنظیم جداول */
+  .tablesSection {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    page-break-after: auto;
+  }
+
+  .tableContainer {
+    box-shadow: none;
+    border: 1px solid #000000;
+    padding: 0.3rem;
+    page-break-inside: avoid;
+  }
+
+  .tableContainer h3 {
+    font-size: 0.7rem;
+    color: #000000;
+    margin-bottom: 0.3rem;
+  }
+
+  .tableWrapper {
+    display: block !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+    word-wrap: break-word !important;
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
+  }
+
+  .table th,
+  .table td {
+    font-size: 0.6rem;
+    padding: 0.2rem;
+    border: 1px solid #000000;
+    color: #000000;
+    white-space: normal !important; /* ← شکستن متن داخل سلول */
+    overflow: visible !important; /* ← حذف clip یا hidden */
+    word-wrap: break-word !important; /* ← شکستن کلمات */
+    text-overflow: clip !important;
+  }
+
+  .table th {
+    background: #f1f5f9 !important;
+  }
+
+  .table tr:hover {
+    background: none !important;
+  }
+
+  /* تنظیم فونت و رنگ برای چاپ */
+  .sectionTitle,
+  .card h3,
+  .card p,
+  .chartContainer h3,
+  .tableContainer h3,
+  .barLabel,
+  .legendItem,
+  .table th,
+  .table td {
+    font-family: iranSans, Arial, sans-serif !important;
+    color: #000000 !important;
+  }
+
+  /* حذف افکت‌های غیرضروری */
+  .card:hover,
+  .bar:hover {
+    transform: none;
+    opacity: 1;
+  }
+
+  /* جلوگیری از سرریز شدن محتوا */
+  .adminDashboard,
+  .summaryCards,
+  .chartsSection,
+  .tablesSection,
+  .chartContainer,
+  .tableContainer,
+  .chartWrapper,
+  .tableWrapper,
+  .table {
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
 }
 
 /* Responsive */
