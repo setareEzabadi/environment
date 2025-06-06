@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import styles from './Reports.module.css';
 import env from '../../env';
 import { toast } from 'react-toastify';
-import { FaTrash, FaPrint, FaInfoCircle, FaPlus, FaMinus } from 'react-icons/fa';
+import { FaTrash, FaPrint, FaInfoCircle, FaPlus, FaMinus, FaSearch } from 'react-icons/fa';
 import { DatePicker as MuiDatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterMomentJalaali } from '@mui/x-date-pickers/AdapterMomentJalaali';
@@ -127,10 +127,16 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
         const token = localStorage.getItem('auth_token');
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/getFilterOptions`, {
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+
+            const response = await fetch(`${env.baseUrl}api/ReportFilterOptions`, {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
-                ...(token && { Authorization: `Bearer ${token}` }),
+                headers,
             });
             if (!response.ok) throw new Error(`خطای HTTP! وضعیت: ${response.status}`);
             const result = await response.json();
@@ -524,101 +530,124 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
                 <section className={styles.filterSection}>
                     <h3>فیلتر داینامیک گزارش‌ها</h3>
                     {loading && filterOptions.length === 0 ? (
-                        <div className={styles.loader}>در حال بارگذاری گزینه‌های فیلتر...</div>
+                        <div className={styles.loader}>
+                            <span className={styles.loaderSpinner}></span> در حال بارگذاری گزینه‌های فیلتر...
+                        </div>
                     ) : filterOptions.length === 0 ? (
                         <p className={styles.noFilters}>گزینه‌ای برای فیلتر یافت نشد.</p>
                     ) : (
                         <LocalizationProvider dateAdapter={AdapterMomentJalaali}>
-                            <div className={styles.filterControls}>
-                                {filterOptions.map((f) => {
-                                    const { key, label, type, options } = f;
-                                    const rawValue = dynamicFilterValues[key] ?? '';
+                            <div className={styles.filterContainer}>
+                                <div className={styles.filterGrid}>
+                                    {filterOptions.map((f) => {
+                                        const { key, label, type, options } = f;
+                                        const rawValue = dynamicFilterValues[key] ?? '';
 
-                                    if (type === 'select') {
-                                        return (
-                                            <div key={key} className={styles.filterItem}>
-                                                <label htmlFor={key}>{label}:</label>
-                                                <select
-                                                    id={key}
-                                                    name={key}
-                                                    value={rawValue}
-                                                    onChange={(e) => handleDynamicFilterChange(key, e.target.value)}
-                                                >
-                                                    <option value="">انتخاب کنید</option>
-                                                    {Array.isArray(options) &&
-                                                        options.map((opt) => {
-                                                            if (typeof opt === 'string') {
+                                        if (type === 'select') {
+                                            return (
+                                                <div key={key} className={styles.filterItem}>
+                                                    <label htmlFor={key} className={styles.filterLabel}>
+                                                        {label}
+                                                    </label>
+                                                    <select
+                                                        id={key}
+                                                        name={key}
+                                                        value={rawValue}
+                                                        onChange={(e) => handleDynamicFilterChange(key, e.target.value)}
+                                                        className={styles.filterSelect}
+                                                    >
+                                                        <option value="">همه {label}</option>
+                                                        {Array.isArray(options) &&
+                                                            options.map((opt) => {
+                                                                if (typeof opt === 'string') {
+                                                                    return (
+                                                                        <option key={opt} value={opt}>
+                                                                            {opt === 'pending'
+                                                                                ? 'در انتظار'
+                                                                                : opt === 'in_progress'
+                                                                                    ? 'در حال انجام'
+                                                                                    : opt === 'resolved'
+                                                                                        ? 'حل‌شده'
+                                                                                        : opt === 'unprocessed'
+                                                                                            ? 'بررسی نشده'
+                                                                                            : opt}
+                                                                        </option>
+                                                                    );
+                                                                }
                                                                 return (
-                                                                    <option key={opt} value={opt}>
-                                                                        {opt === 'pending'
-                                                                            ? 'در انتظار'
-                                                                            : opt === 'in_progress'
-                                                                                ? 'در حال انجام'
-                                                                                : opt === 'resolved'
-                                                                                    ? 'حل‌شده'
-                                                                                    : opt === 'unprocessed'
-                                                                                        ? 'بررسی نشده'
-                                                                                        : opt}
+                                                                    <option key={opt.value} value={opt.value}>
+                                                                        {opt.label}
                                                                     </option>
                                                                 );
-                                                            }
-                                                            return (
-                                                                <option key={opt.value} value={opt.value}>
-                                                                    {opt.label}
-                                                                </option>
-                                                            );
-                                                        })}
-                                                </select>
-                                            </div>
-                                        );
-                                    }
+                                                            })}
+                                                    </select>
+                                                </div>
+                                            );
+                                        }
 
-                                    if (type === 'text') {
-                                        return (
-                                            <div key={key} className={styles.filterItem}>
-                                                <label htmlFor={key}>{label}:</label>
-                                                <input
-                                                    id={key}
-                                                    name={key}
-                                                    type="text"
-                                                    value={rawValue}
-                                                    onChange={(e) => handleDynamicFilterChange(key, e.target.value)}
-                                                    placeholder={`جستجو بر اساس ${label}`}
-                                                />
-                                            </div>
-                                        );
-                                    }
+                                        if (type === 'text') {
+                                            return (
+                                                <div key={key} className={styles.filterItem}>
+                                                    <label htmlFor={key} className={styles.filterLabel}>
+                                                        {label}
+                                                    </label>
+                                                    <input
+                                                        id={key}
+                                                        name={key}
+                                                        type="text"
+                                                        value={rawValue}
+                                                        onChange={(e) => handleDynamicFilterChange(key, e.target.value)}
+                                                        placeholder={`جستجو بر اساس ${label}`}
+                                                        className={styles.filterInput}
+                                                    />
+                                                </div>
+                                            );
+                                        }
 
-                                    if (type === 'date') {
-                                        const pickerValue = rawValue ? moment(rawValue, 'YYYY-MM-DD') : null;
-                                        return (
-                                            <div key={key} className={styles.filterItem}>
-                                                <label htmlFor={key}>{label}:</label>
-                                                <MuiDatePicker
-                                                    value={pickerValue}
-                                                    onChange={(date) => {
-                                                        const val = date ? date.format('YYYY-MM-DD') : '';
-                                                        handleDynamicFilterChange(key, val);
-                                                    }}
-                                                    inputFormat="jYYYY/jMM/jDD"
-                                                    mask="____/__/__"
-                                                    renderInput={(params) => (
-                                                        <TextField
-                                                            {...params}
-                                                            className={styles.datePickerInput}
-                                                            placeholder="انتخاب تاریخ"
-                                                            size="small"
-                                                        />
-                                                    )}
-                                                />
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                })}
-                                <button onClick={performDynamicSearch} className={styles.searchBtn}>
-                                    جستجوی دینامیک
-                                </button>
+                                        if (type === 'date') {
+                                            const pickerValue = rawValue ? moment(rawValue, 'YYYY-MM-DD') : null;
+                                            return (
+                                                <div key={key} className={styles.filterItem}>
+                                                    <label htmlFor={key} className={styles.filterLabel}>
+                                                        {label}
+                                                    </label>
+                                                    <MuiDatePicker
+                                                        value={pickerValue}
+                                                        onChange={(date) => {
+                                                            const val = date ? date.format('YYYY-MM-DD') : '';
+                                                            handleDynamicFilterChange(key, val);
+                                                        }}
+                                                        inputFormat="jYYYY/jMM/jDD"
+                                                        mask="____/__/__"
+                                                        renderInput={(params) => (
+                                                            <TextField
+                                                                {...params}
+                                                                className={styles.datePickerInput}
+                                                                placeholder="انتخاب تاریخ"
+                                                                size="small"
+                                                            />
+                                                        )}
+                                                    />
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })}
+                                </div>
+                                <div className={styles.filterActions}>
+                                    <button onClick={performDynamicSearch} className={styles.searchBtn}>
+                                        <FaSearch style={{ marginLeft: '8px' }} /> جستجوی
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setDynamicFilterValues({});
+                                            fetchsignalSuccess('فیلترها با موفقیت بازنشانی شد');
+                                        }}
+                                        className={styles.resetBtn}
+                                    >
+                                        ریست
+                                    </button>
+                                </div>
                             </div>
                         </LocalizationProvider>
                     )}
@@ -741,7 +770,7 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
                                                         >
                                                             <FaTrash />
                                                         </button>
-                                                        <select
+                                                        {/* <select
                                                             value={report.status}
                                                             onChange={(e) => updateStatus(report.id, e.target.value)}
                                                             className={styles.statusSelect}
@@ -751,7 +780,7 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
                                                             <option value="pending">در انتظار</option>
                                                             <option value="in_progress">در حال انجام</option>
                                                             <option value="resolved">حل‌شده</option>
-                                                        </select>
+                                                        </select> */}
                                                     </>
                                                 )}
                                             </td>
