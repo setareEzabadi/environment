@@ -889,3 +889,143 @@
   margin-top: 0.3rem;
   display: block;
 }
+
+/* Dynamic Filter Section */
+.dynamicFilterSection {
+  margin-bottom: 2.5rem;
+  padding: 2rem;
+  background: linear-gradient(145deg, #f9fafb, #ffffff);
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+}
+
+.filterHeader {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.filterHeader h3 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #111827;
+  position: relative;
+  display: inline-block;
+}
+
+.filterHeader h3::after {
+  content: "";
+  display: block;
+  width: 80px;
+  height: 4px;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  margin: 0.5rem auto;
+  border-radius: 2px;
+}
+
+.dynamicFilterControls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+  align-items: flex-end;
+}
+
+.dynamicFilterItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filterLabel {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  transition: color 0.3s ease;
+}
+
+.dynamicFilterItem:hover .filterLabel {
+  color: #10b981;
+}
+
+.dynamicFilterSelect,
+.dynamicFilterInput {
+  padding: 0.9rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 1rem;
+  background: #ffffff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  font-family: iranSans, sans-serif !important;
+  direction: rtl;
+}
+
+.dynamicFilterSelect:focus,
+.dynamicFilterInput:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+  outline: none;
+}
+
+.dynamicFilterSelect {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234b5563' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 0.75rem center;
+  background-size: 1.2rem;
+  padding-left: 2.5rem;
+}
+
+.dynamicFilterInput::placeholder {
+  color: #9ca3af;
+  font-family: iranSans, sans-serif !important;
+}
+
+.datePickerInput {
+  width: 100%;
+}
+
+/* Filter Actions */
+.filterActions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+
+.resetBtn {
+  padding: 0.9rem 2rem;
+  background: linear-gradient(90deg, #ef4444, #f87171);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.resetBtn:hover {
+  background: linear-gradient(90deg, #dc2626, #ef4444);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Responsive Adjustments for Dynamic Filters */
+@media (max-width: 768px) {
+  .dynamicFilterControls {
+    grid-template-columns: 1fr;
+  }
+
+  .filterActions {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .searchBtn,
+  .resetBtn {
+    width: 100%;
+  }
+}
