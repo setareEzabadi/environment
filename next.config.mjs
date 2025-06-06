@@ -2,9 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@mui/material", "@mui/x-date-pickers"],
-  experimental: {
-    esmExternals: "loose",
-  },
+  // experimental: {
+  //   esmExternals: "loose",
+  // },
 };
 
 export default nextConfig;
