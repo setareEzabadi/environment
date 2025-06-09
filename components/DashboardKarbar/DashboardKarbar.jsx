@@ -14,7 +14,7 @@ import {
 import moment from "jalali-moment";
 import styles from "./DashboardKarbar.module.css";
 import Campaigns from "./CampaignsUser";
-import Stats from "./Stats";
+import MyReportAssistance from "./MyReportAssistance"; // کامپوننت جدید
 import Profile from "./Profile";
 import GetReports from "./GetReports";
 import CategoryManagement from "./CategoryManagement";
@@ -52,7 +52,7 @@ const sections = [
         ],
     },
     { key: "campaigns", label: "کمپین‌ها", icon: FaBullhorn },
-    { key: "stats", label: "امتیازات", icon: FaStar },
+    { key: "myReportAssistance", label: "داوطلب‌شده", icon: FaStar }, // جایگزین stats
     { key: "profile", label: "ویرایش پروفایل", icon: FaUserEdit },
 ];
 
@@ -179,11 +179,11 @@ const DashboardKarbar = () => {
                 <main className={styles.content}>
                     {active === "adminDashboard" && isAdmin && <AdminDashboard />}
                     {active === "users" && isAdmin && <UserManagement />}
-                    {active === "reportBuilder" && isAdmin && <ReportBuilder />} {/* اضافه کردن کامپوننت جدید */}
+                    {active === "reportBuilder" && isAdmin && <ReportBuilder />}
                     {active === "Getreports" && <GetReports />}
                     {active === "categories" && isAdmin && <CategoryManagement />}
                     {active === "campaigns" && <Campaigns />}
-                    {active === "stats" && <Stats />}
+                    {active === "myReportAssistance" && <MyReportAssistance />} {/* کامپوننت جدید */}
                     {active === "profile" && <Profile />}
                 </main>
             </div>
