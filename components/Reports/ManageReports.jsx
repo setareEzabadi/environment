@@ -18,7 +18,7 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
     const [selectedReport, setSelectedReport] = useState(null);
     const [filterOptions, setFilterOptions] = useState([]);
     const [dynamicFilterValues, setDynamicFilterValues] = useState({});
-
+    const [filterMessage, setFilterMessage] = useState('');
     // ======= کدهای مربوط به جستجوی tracking_code =======
     const [searchCode, setSearchCode] = useState('');
     const [trackedReport, setTrackedReport] = useState(null); // برای ذخیره گزارش پیدا شده
@@ -346,32 +346,57 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
 
     const performDynamicSearch = async () => {
         setLoading(true);
+        setFilterMessage(''); 
         const token = localStorage.getItem('auth_token');
+        if (!token) {
+            toast.error('لطفاً ابتدا وارد حساب کاربری خود شوید!');
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 3000);
+            return;
+        }
 
         try {
-            const url = new URL(`http://127.0.0.1:8000/api/reports/dynamicSearch`);
+            const url = new URL(`${env.baseUrl}api/searchReports`);
             Object.entries(dynamicFilterValues).forEach(([key, value]) => {
                 if (value !== '' && value !== null && value !== undefined) {
                     url.searchParams.append(key, value);
                 }
             });
+            const headers = {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            };
             const response = await fetch(url.toString(), {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
-                ...(token && { Authorization: `Bearer ${token}` }),
+                headers,
             });
-            if (!response.ok) throw new Error(`خطای HTTP! وضعیت: ${response.status}`);
             const result = await response.json();
-            setReports(Array.isArray(result.data) ? result.data : []);
-            setPagination({
-                current_page: result.current_page || 1,
-                last_page: result.last_page || 1,
-                links: Array.isArray(result.links) ? result.links : [],
-            });
+
+            // مدیریت پاسخ بک‌اند
+            if (result.status === false && Array.isArray(result.data) && result.data.length === 0) {
+                setReports([]);
+                setFilterMessage(result.message || 'گزارشی یافت نشد'); // پیام بک‌اند
+                setPagination({ current_page: 1, last_page: 1, links: [] });
+            } else if (!response.ok) {
+                // فقط اگه پاسخ غیر 404 باشه یا JSON نامعتبر باشه ارور بندازیم
+                throw new Error(result.message || `خطای HTTP! وضعیت: ${response.status}`);
+            } else {
+                // پاسخ موفق با داده‌ها
+                setReports(Array.isArray(result.data) ? result.data : []);
+                setFilterMessage(''); // پاک کردن پیام در صورت موفقیت
+                setPagination({
+                    current_page: result.current_page || 1,
+                    last_page: result.last_page || 1,
+                    links: Array.isArray(result.links) ? result.links : [],
+                });
+            }
         } catch (err) {
             console.error('خطا در جستجوی داینامیک:', err);
             setError(err.message || 'خطا در ارتباط با سرور');
+            toast.error(err.message || 'خطا در ارتباط با سرور');
             setReports([]);
+            setFilterMessage(''); // ریست پیام در صورت خطا
             setPagination({ current_page: 1, last_page: 1, links: [] });
         } finally {
             setLoading(false);
@@ -528,7 +553,7 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
 
             {isAdmin && (
                 <section className={styles.filterSection}>
-                    <h3>فیلتر داینامیک گزارش‌ها</h3>
+                    <h3>فیلتر نیمه پویا گزارش‌ها</h3>
                     {loading && filterOptions.length === 0 ? (
                         <div className={styles.loader}>
                             <span className={styles.loaderSpinner}></span> در حال بارگذاری گزینه‌های فیلتر...
@@ -636,12 +661,12 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
                                 </div>
                                 <div className={styles.filterActions}>
                                     <button onClick={performDynamicSearch} className={styles.searchBtn}>
-                                        <FaSearch style={{ marginLeft: '8px' }} /> جستجوی
+                                        <FaSearch style={{ marginLeft: '8px' }} /> جستجو
                                     </button>
                                     <button
                                         onClick={() => {
                                             setDynamicFilterValues({});
-                                            fetchsignalSuccess('فیلترها با موفقیت بازنشانی شد');
+                                            toast.success('فیلترها با موفقیت بازنشانی شد');
                                         }}
                                         className={styles.resetBtn}
                                     >
