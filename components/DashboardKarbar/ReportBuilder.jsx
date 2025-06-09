@@ -18,6 +18,22 @@ const ReportBuilder = () => {
 
     const token = localStorage.getItem("auth_token");
 
+    // تابع برای ترجمه وضعیت‌ها به فارسی
+    const getStatusText = (status) => {
+        switch (status?.toLowerCase()) {
+            case "active":
+                return "فعال";
+            case "upcoming":
+                return "آینده";
+            case "ended":
+                return "پایان‌یافته";
+            case "paused":
+                return "متوقف";
+            default:
+                return status || "نامشخص";
+        }
+    };
+
     useEffect(() => {
         const fetchTables = async () => {
             try {
@@ -226,11 +242,13 @@ const ReportBuilder = () => {
                                     <td key={header}>
                                         {item[header] === null || item[header] === ""
                                             ? "—"
-                                            : header.includes("date") || header.includes("created_at") || header.includes("updated_at")
-                                                ? header.includes("at")
-                                                    ? formatJalaliDateTime(item[header])
-                                                    : formatJalaliDate(item[header])
-                                                : item[header]}
+                                            : header === "status_id" || header === "status"
+                                                ? getStatusText(item[header])
+                                                : header.includes("date") || header.includes("created_at") || header.includes("updated_at")
+                                                    ? header.includes("at")
+                                                        ? formatJalaliDateTime(item[header])
+                                                        : formatJalaliDate(item[header])
+                                                    : item[header]}
                                     </td>
                                 ))}
                             </tr>
@@ -307,7 +325,9 @@ const ReportBuilder = () => {
                                                             .find((f) => f.key === filter.field)
                                                             ?.options.map((opt) => (
                                                                 <option key={opt.value} value={opt.value}>
-                                                                    {opt.label}
+                                                                    {filter.field === "status_id"
+                                                                        ? getStatusText(opt.label)
+                                                                        : opt.label}
                                                                 </option>
                                                             ))}
                                                     </select>
