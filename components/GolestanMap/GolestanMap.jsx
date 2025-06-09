@@ -102,29 +102,37 @@ const GolestanMap = () => {
     useEffect(() => {
         const fetchReports = async () => {
             setLoading(true);
+            setError(null);
             const token = localStorage.getItem("auth_token");
-            if (!token) {
-                setError("توکن احراز هویت یافت نشد");
-                setLoading(false);
-                return;
-            }
 
             try {
+                const headers = {
+                    "Content-Type": "application/json",
+                };
+
+                if (token) {
+                    headers["Authorization"] = `Bearer ${token}`;
+                }
+
                 const response = await fetch(`${env.baseUrl}api/getReports`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
+                    headers,
                 });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error("احراز هویت ناموفق است. لطفاً دوباره وارد شوید.");
+                    }
+                    throw new Error("خطا در دریافت داده‌ها از سرور");
+                }
 
                 const result = await response.json();
                 if (result.status && result.data) {
                     setReports(result.data);
                 } else {
-                    setError("خطا در دریافت داده‌ها");
+                    throw new Error(result.message || "داده‌ای دریافت نشد");
                 }
             } catch (err) {
-                setError("خطا در ارتباط با سرور");
+                setError(err.message || "خطا در ارتباط با سرور");
             } finally {
                 setLoading(false);
             }
@@ -141,7 +149,8 @@ const GolestanMap = () => {
 
     return (
         <div className={styles.mapSection}>
-            <h2>نقشه گرگان</h2>
+            {/* <h2>نقشه گرگان</h2> */}
+            <h2>رصدخانه گزارشات</h2>
             {error && <div className={styles.error}>{error}</div>}
             {loading && (
                 <div className={styles.loading}>
