@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import styles from './Campaigns.module.css';
 import env from '../../env';
 import { ToastContainer, toast } from 'react-toastify';
@@ -23,6 +24,7 @@ const Campaigns = () => {
     const [editCampaignId, setEditCampaignId] = useState(null);
     const [isAdmin, setIsAdmin] = useState(false);
     const [activeTab, setActiveTab] = useState('viewCampaigns');
+    const router = useRouter(); // تعریف useRouter
 
     const checkUserRole = () => {
         const userData = localStorage.getItem('auth_user');
@@ -42,7 +44,10 @@ const Campaigns = () => {
 
     const sendRequest = async (url, method = 'GET', body = null) => {
         const token = localStorage.getItem('auth_token');
-        if (!token) throw new Error('توکن احراز هویت یافت نشد');
+        if (!token) {
+            router.push('/login'); // هدایت به صفحه لاگین
+            return; // توقف اجرای تابع
+        }
 
         const headers = {
             Authorization: `Bearer ${token}`,
@@ -56,6 +61,10 @@ const Campaigns = () => {
         const result = await response.json();
 
         if (!response.ok) {
+            if (response.status === 401) {
+                router.push('/login'); // هدایت به لاگین در صورت خطای 401
+                return;
+            }
             if (result.message === 'شما قبلاً به این کمپین پیوسته‌اید.') {
                 return { success: false, message: result.message };
             }
@@ -68,8 +77,10 @@ const Campaigns = () => {
         try {
             const statusFilter = selectedStatus ? `?status_id=${selectedStatus}` : '';
             const result = await sendRequest(`${env.baseUrl}api/CampaignFillter${statusFilter}`);
-            setCampaigns(Array.isArray(result.data) ? result.data : []);
-            toast.success('کمپین‌ها با موفقیت دریافت شدند', { toastId: 'fetchCampaigns' });
+            if (result) {
+                setCampaigns(Array.isArray(result.data) ? result.data : []);
+                toast.success('کمپین‌ها با موفقیت دریافت شدند', { toastId: 'fetchCampaigns' });
+            }
         } catch (err) {
             console.error('خطا در دریافت کمپین‌ها:', err);
             toast.error(err.message || 'خطا در دریافت کمپین‌ها', { toastId: 'fetchCampaignsError' });
@@ -79,8 +90,10 @@ const Campaigns = () => {
     const fetchStatuses = async () => {
         try {
             const result = await sendRequest(`${env.baseUrl}api/campaign-statuses`);
-            const statusesData = Array.isArray(result.data) ? result.data : [];
-            setStatuses(statusesData);
+            if (result) {
+                const statusesData = Array.isArray(result.data) ? result.data : [];
+                setStatuses(statusesData);
+            }
         } catch (err) {
             console.error('خطا در دریافت وضعیت‌ها:', err);
             toast.error(err.message || 'خطا در دریافت وضعیت‌ها', { toastId: 'fetchStatuses' });
@@ -90,9 +103,11 @@ const Campaigns = () => {
     const fetchCampaignDetails = async (campaign_id) => {
         try {
             const result = await sendRequest(`${env.baseUrl}api/getCampaign?campaign_id=${campaign_id}`);
-            setSelectedCampaign(result.campaign);
-            setParticipants(result.campaign.participants || []);
-            return result;
+            if (result) {
+                setSelectedCampaign(result.campaign);
+                setParticipants(result.campaign.participants || []);
+                return result;
+            }
         } catch (err) {
             console.error('خطا در دریافت جزئیات کمپین:', err);
             toast.error(err.message || 'خطا در دریافت جزئیات کمپین', { toastId: 'fetchCampaignDetails' });
@@ -103,8 +118,10 @@ const Campaigns = () => {
     const fetchParticipants = async (campaign_id) => {
         try {
             const result = await sendRequest(`${env.baseUrl}api/campaigns/participants?campaign_id=${campaign_id}`);
-            setParticipants(result.participants || []);
-            return result;
+            if (result) {
+                setParticipants(result.participants || []);
+                return result;
+            }
         } catch (err) {
             console.error('خطا در دریافت شرکت‌کنندگان:', err);
             toast.error(err.message || 'خطا در دریافت شرکت‌کنندگان', { toastId: 'fetchParticipants' });
@@ -115,7 +132,9 @@ const Campaigns = () => {
     const fetchAllCampaigns = async () => {
         try {
             const result = await sendRequest(`${env.baseUrl}api/getCampaigns`);
-            setCampaigns(Array.isArray(result.data) ? result.data : []);
+            if (result) {
+                setCampaigns(Array.isArray(result.data) ? result.data : []);
+            }
         } catch (err) {
             console.error('خطا در دریافت همه کمپین‌ها:', err);
             toast.error(err.message || 'خطا در دریافت همه کمپین‌ها', { toastId: 'fetchAllCampaigns' });
@@ -125,10 +144,12 @@ const Campaigns = () => {
     const handleCreateCampaign = async (e) => {
         e.preventDefault();
         try {
-            await sendRequest(`${env.baseUrl}api/storecampaign`, 'POST', formData);
-            await fetchAllCampaigns();
-            setFormData({ title: '', description: '', status_id: '', start_date: '', end_date: '', location: '' });
-            toast.success('کمپین با موفقیت ایجاد شد', { toastId: 'createCampaign' });
+            const result = await sendRequest(`${env.baseUrl}api/storecampaign`, 'POST', formData);
+            if (result) {
+                await fetchAllCampaigns();
+                setFormData({ title: '', description: '', status_id: '', start_date: '', end_date: '', location: '' });
+                toast.success('کمپین با موفقیت ایجاد شد', { toastId: 'createCampaign' });
+            }
         } catch (err) {
             console.error('خطا در ایجاد کمپین:', err);
             toast.error(err.message || 'خطا در ایجاد کمپین', { toastId: 'createCampaignError' });
@@ -138,7 +159,7 @@ const Campaigns = () => {
     const handleUpdateCampaign = async (e) => {
         e.preventDefault();
         try {
-            await sendRequest(`${env.baseUrl}api/updateCampaign`, 'POST', {
+            const result = await sendRequest(`${env.baseUrl}api/updateCampaign`, 'POST', {
                 campaign_id: editCampaignId,
                 title: formData.title,
                 description: formData.description,
@@ -147,10 +168,12 @@ const Campaigns = () => {
                 end_date: formData.end_date,
                 location: formData.location,
             });
-            await fetchAllCampaigns();
-            setEditCampaignId(null);
-            setFormData({ title: '', description: '', status_id: '', start_date: '', end_date: '', location: '' });
-            toast.success('کمپین با موفقیت ویرایش شد', { toastId: 'updateCampaign' });
+            if (result) {
+                await fetchAllCampaigns();
+                setEditCampaignId(null);
+                setFormData({ title: '', description: '', status_id: '', start_date: '', end_date: '', location: '' });
+                toast.success('کمپین با موفقیت ویرایش شد', { toastId: 'updateCampaign' });
+            }
         } catch (err) {
             console.error('خطا در ویرایش کمپین:', err);
             toast.error(err.message || 'خطا در ویرایش کمپین', { toastId: 'updateCampaignError' });
@@ -160,9 +183,11 @@ const Campaigns = () => {
     const handleDeleteCampaign = async (campaign_id) => {
         if (!window.confirm('آیا مطمئن هستید که می‌خواهید این کمپین را حذف کنید؟')) return;
         try {
-            await sendRequest(`${env.baseUrl}api/destroyCampaign`, 'POST', { campaign_id });
-            await fetchAllCampaigns();
-            toast.success('کمپین با موفقیت حذف شد', { toastId: 'deleteCampaign' });
+            const result = await sendRequest(`${env.baseUrl}api/destroyCampaign`, 'POST', { campaign_id });
+            if (result) {
+                await fetchAllCampaigns();
+                toast.success('کمپین با موفقیت حذف شد', { toastId: 'deleteCampaign' });
+            }
         } catch (err) {
             console.error('خطا در حذف کمپین:', err);
             toast.error(err.message || 'خطا در حذف کمپین', { toastId: 'deleteCampaignError' });
@@ -171,6 +196,7 @@ const Campaigns = () => {
 
     const handleJoinCampaign = async (campaign_id) => {
         const result = await sendRequest(`${env.baseUrl}api/campaigns/join`, 'POST', { campaign_id });
+        if (!result) return; // در صورت هدایت به لاگین، ادامه نده
         if (result.success === false && result.message === 'شما قبلاً به این کمپین پیوسته‌اید.') {
             toast.info('شما قبلاً به این کمپین پیوسته‌اید.', { toastId: 'joinCampaignInfo' });
         } else if (result.success !== false) {
@@ -191,7 +217,7 @@ const Campaigns = () => {
                 campaign_id,
                 amount: parseFloat(amount),
             });
-            if (result.status && result.payment_url) {
+            if (result && result.status && result.payment_url) {
                 toast.success('در حال انتقال به درگاه پرداخت...', { toastId: 'startPayment' });
                 window.location.href = result.payment_url;
             } else {
