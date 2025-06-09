@@ -349,7 +349,7 @@ const CampaignList = ({
             {isAdmin && (
                 <section className={styles.dynamicFilterSection}>
                     <div className={styles.filterHeader}>
-                        <h3>فیلتر داینامیک کمپین‌ها</h3>
+                        <h3>فیلتر نیمه پویا کمپین‌ها</h3>
                     </div>
                     {loadingFilters && filterOptions.length === 0 ? (
                         <div className={styles.loader}>در حال بارگذاری گزینه‌های فیلتر...</div>
@@ -379,7 +379,9 @@ const CampaignList = ({
                                                     {Array.isArray(options) &&
                                                         options.map((opt) => (
                                                             <option key={opt.value} value={opt.value}>
-                                                                {opt.label}
+                                                                {key === 'status_id'
+                                                                    ? getStatusText({ status: opt.label }, statuses)
+                                                                    : opt.label}
                                                             </option>
                                                         ))}
                                                 </select>
