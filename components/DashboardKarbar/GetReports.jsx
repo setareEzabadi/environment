@@ -3,10 +3,11 @@ import styles from "./DashboardKarbar.module.css";
 import env from "../../env";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { FaTrash, FaPrint, FaInfoCircle, FaPlus, FaMinus, FaQuestionCircle, FaEdit } from "react-icons/fa";
+import { FaTrash, FaPrint, FaInfoCircle, FaPlus, FaMinus, FaQuestionCircle, FaEdit, FaSearch } from "react-icons/fa";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterMomentJalaali } from "@mui/x-date-pickers/AdapterMomentJalaali";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { DatePicker as MuiDatePicker } from "@mui/x-date-pickers/DatePicker";
+import TextField from "@mui/material/TextField";
 import moment from "jalali-moment";
 
 const GetReports = () => {
@@ -19,7 +20,11 @@ const GetReports = () => {
     const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, links: [] });
     const [showHelp, setShowHelp] = useState(false);
     const [selectedReport, setSelectedReport] = useState(null);
-    const [editStatus, setEditStatus] = useState(null); // برای پاپ‌آپ تغییر وضعیت
+    const [editStatus, setEditStatus] = useState(null);
+    // اضافه شده برای فیلتر نیمه‌پویا
+    const [filterOptions, setFilterOptions] = useState([]);
+    const [dynamicFilterValues, setDynamicFilterValues] = useState({});
+    const [filterMessage, setFilterMessage] = useState("");
 
     const checkUserRole = async () => {
         const userData = localStorage.getItem("auth_user");
@@ -44,6 +49,9 @@ const GetReports = () => {
         const isAdminUser = await checkUserRole();
         await fetchReports(isAdminUser);
         await fetchCategories();
+        if (isAdminUser) {
+            await fetchFilterOptions(); // فقط برای ادمین‌ها
+        }
     };
 
     useEffect(() => {
@@ -61,7 +69,15 @@ const GetReports = () => {
         const response = await fetch(url, options);
         const result = await response.json();
 
-        if (!response.ok) throw new Error(result.message || `خطای HTTP! وضعیت: ${response.status}`);
+        if (!response.ok) {
+            throw new Error(result.message || `خطای HTTP! وضعیت: ${response.status}`);
+        }
+
+        // اگه status: false بود و data خالی بود، ارور نندازیم
+        if (result.status === false && Array.isArray(result.data) && result.data.length === 0) {
+            return result; // پاسخ رو همون‌طور برگردون
+        }
+
         return result;
     };
 
@@ -100,6 +116,61 @@ const GetReports = () => {
             return null;
         }
     };
+
+    const fetchFilterOptions = async () => {
+        setLoading(true);
+        try {
+            const result = await sendRequest(`${env.baseUrl}api/ReportFilterOptions`);
+            const ops = Array.isArray(result.filters) ? result.filters : [];
+            setFilterOptions(ops);
+            const initialValues = {};
+            ops.forEach((f) => {
+                initialValues[f.key] = "";
+            });
+            setDynamicFilterValues(initialValues);
+        } catch (err) {
+            console.error("خطا در دریافت گزینه‌های فیلتر:", err);
+            setError(err.message || "خطا در دریافت گزینه‌های فیلتر");
+            toast.error(err.message || "خطا در دریافت گزینه‌های فیلتر");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const performDynamicSearch = async (page = 1) => {
+        setLoading(true);
+        setFilterMessage(""); // ریست پیام
+        try {
+            const url = new URL(`${env.baseUrl}api/searchReports`);
+            url.searchParams.append("page", page);
+            Object.entries(dynamicFilterValues).forEach(([key, value]) => {
+                if (value !== "" && value !== null && value !== undefined) {
+                    url.searchParams.append(key, value);
+                }
+            });
+            const result = await sendRequest(url.toString());
+
+            if (result.status === false && Array.isArray(result.data) && result.data.length === 0) {
+                setReports([]);
+                setFilterMessage(result.message || "گزارشی یافت نشد"); // ذخیره پیام بک‌اند
+                setPagination({ current_page: 1, last_page: 1, links: [] });
+            } else {
+                setReports(Array.isArray(result.data) ? result.data : []);
+                setPagination({
+                    current_page: result.current_page || 1,
+                    last_page: result.last_page || 1,
+                    links: Array.isArray(result.links) ? result.links : [],
+                });
+            }
+        } catch (err) {
+            setError(err.message || "خطا در جستجوی گزارش‌ها");
+            setReports([]);
+            setPagination({ current_page: 1, last_page: 1, links: [] });
+            toast.error(err.message || "خطا در جستجوی گزارش‌ها");
+        } finally {
+            setLoading(false);
+        }
+    }
 
     const updateStatus = async (reportId, status, comment, doneAt) => {
         setLoading(true);
@@ -185,16 +256,42 @@ const GetReports = () => {
         }
     };
 
-    const getCategoryName = (report) => report.category?.name || categories.find((cat) => cat.id === report.category_id)?.name || "بدون دسته‌بندی";
+    const handleDynamicFilterChange = (key, rawValue) => {
+        setDynamicFilterValues((prev) => ({
+            ...prev,
+            [key]: rawValue,
+        }));
+    };
+
+    const resetDynamicFilters = () => {
+        const initialValues = {};
+        filterOptions.forEach((f) => {
+            initialValues[f.key] = "";
+        });
+        setDynamicFilterValues(initialValues);
+        fetchReports(isAdmin); // بازگرداندن گزارش‌های اولیه
+        toast.success("فیلترها با موفقیت بازنشانی شد");
+    };
+
+    const getCategoryName = (report) =>
+        report.category?.name || categories.find((cat) => cat.id === report.category_id)?.name || "بدون دسته‌بندی";
     const getRegionName = (report) => report.region?.name || report.region_id || "بدون منطقه";
 
     const printTable = () => {
         const printWindow = window.open("", "_blank");
         printWindow.document.write(`
-            <html dir="rtl">
-                <head><title>چاپ گزارش‌ها</title><style>body{font-family:'iranSans',sans-serif;direction:rtl;padding:20px}h2{text-align:center}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:right}.statusBadge{padding:6px 12px;border-radius:12px}.pending{background:#fef3c7;color:#d97706}.in_progress{background:#dbeafe;color:#2563eb}.resolved{background:#d1fae5;color:#10b981}</style></head>
-                <body><h2>لیست گزارش‌ها</h2><table><thead><tr><th>#</th><th>عنوان</th><th>وضعیت</th><th>دسته‌بندی</th><th>منطقه</th><th>مکان</th><th>تاریخ</th></tr></thead><tbody>${reports.map((report, index) => `<tr><td>${index + 1}</td><td>${report.title || "بدون عنوان"}</td><td><span class="statusBadge ${report.status}">${report.status === "pending" ? "در انتظار" : report.status === "in_progress" ? "در حال انجام" : "حل‌شده"}</span></td><td>${getCategoryName(report)}</td><td>${getRegionName(report)}</td><td>${report.location || "نامشخص"}</td><td>${moment(report.created_at).locale("fa").format("jYYYY/jMM/jDD")}</td></tr>`).join("")}</tbody></table></body></html>
-        `);
+      <html dir="rtl">
+        <head><title>چاپ گزارش‌ها</title><style>body{font-family:'iranSans',sans-serif;direction:rtl;padding:20px}h2{text-align:center}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:right}.statusBadge{padding:6px 12px;border-radius:12px}.pending{background:#fef3c7;color:#d97706}.in_progress{background:#dbeafe;color:#2563eb}.resolved{background:#d1fae5;color:#10b981}</style></head>
+        <body><h2>لیست گزارش‌ها</h2><table><thead><tr><th>#</th><th>عنوان</th><th>وضعیت</th><th>دسته‌بندی</th><th>منطقه</th><th>مکان</th><th>تاریخ</th></tr></thead><tbody>${reports
+                .map(
+                    (report, index) =>
+                        `<tr><td>${index + 1}</td><td>${report.title || "بدون عنوان"}</td><td><span class="statusBadge ${report.status
+                        }">${report.status === "pending" ? "در انتظار" : report.status === "in_progress" ? "در حال انجام" : "حل‌شده"
+                        }</span></td><td>${getCategoryName(report)}</td><td>${getRegionName(report)}</td><td>${report.location || "نامشخص"
+                        }</td><td>${moment(report.created_at).locale("fa").format("jYYYY/jMM/jDD")}</td></tr>`
+                )
+                .join("")}</tbody></table></body></html>
+    `);
         printWindow.document.close();
         printWindow.print();
     };
@@ -202,9 +299,30 @@ const GetReports = () => {
     const printReport = (report) => {
         const printWindow = window.open("", "_blank");
         printWindow.document.write(`
-            <html dir="rtl"><head><title>چاپ گزارش ${report.title || "بدون عنوان"}</title><style>body{font-family:'iranSans',sans-serif;direction:rtl;padding:20px}.report{max-width:800px;margin:auto;padding:20px;border-radius:12px}.statusBadge{padding:6px 12px;border-radius:12px}.pending{background:#fef3c7;color:#d97706}.in_progress{background:#dbeafe;color:#2563eb}.resolved{background:#d1fae5;color:#10b981}</style></head>
-            <body><div class="report"><h2>${report.title || "بدون عنوان"}</h2><p><strong>وضعیت:</strong><span class="statusBadge ${report.status}">${report.status === "pending" ? "در انتظار" : report.status === "in_progress" ? "در حال انجام" : "حل‌شده"}</span></p><p><strong>توضیحات:</strong>${report.description || "بدون توضیحات"}</p><p><strong>دسته‌بندی:</strong>${getCategoryName(report)}</p><p><strong>منطقه:</strong>${getRegionName(report)}</p><p><strong>مکان:</strong>${report.location || "نامشخص"}</p><p><strong>موقعیت جغرافیایی:</strong>${report.lat}, ${report.long}</p><p><strong>تاریخ ایجاد:</strong>${moment(report.created_at).locale("fa").format("jYYYY/jMM/jDD")}</p>${report.replies && report.replies.length > 0 ? `<p><strong>جواب‌ها:</strong><ul>${report.replies.map(r => `<li>ادمین: ${r.admin.name} ${r.admin.family} - توضیح: ${r.comment || "بدون توضیح"} - تاریخ انجام: ${moment(r.done_at).locale("fa").format("jYYYY/jMM/jDD")}</li>`).join("")}</ul></p>` : "<p>بدون جواب</p>"}</div></body></html>
-        `);
+      <html dir="rtl"><head><title>چاپ گزارش ${report.title || "بدون عنوان"}</title><style>body{font-family:'iranSans',sans-serif;direction:rtl;padding:20px}.report{max-width:800px;margin:auto;padding:20px;border-radius:12px}.statusBadge{padding:6px 12px;border-radius:12px}.pending{background:#fef3c7;color:#d97706}.in_progress{background:#dbeafe;color:#2563eb}.resolved{background:#d1fae5;color:#10b981}</style></head>
+      <body><div class="report"><h2>${report.title || "بدون عنوان"}</h2><p><strong>وضعیت:</strong><span class="statusBadge ${report.status
+            }">${report.status === "pending" ? "در انتظار" : report.status === "in_progress" ? "در حال انجام" : "حل‌شده"
+            }</span></p><p><strong>توضیحات:</strong>${report.description || "بدون توضیحات"}</p><p><strong>دسته‌بندی:</strong>${getCategoryName(
+                report
+            )}</p><p><strong>منطقه:</strong>${getRegionName(report)}</p><p><strong>مکان:</strong>${report.location || "نامشخص"
+            }</p><p><strong>موقعیت جغرافیایی:</strong>${report.lat}, ${report.long}</p><p><strong>تاریخ ایجاد:</strong>${moment(
+                report.created_at
+            )
+                .locale("fa")
+                .format("jYYYY/jMM/jDD")}</p>${report.replies && report.replies.length > 0
+                    ? `<p><strong>جواب‌ها:</strong><ul>${report.replies
+                        .map(
+                            (r) =>
+                                `<li>ادمین: ${r.admin.name} ${r.admin.family} - توضیح: ${r.comment || "بدون توضیح"} - تاریخ انجام: ${moment(
+                                    r.done_at
+                                )
+                                    .locale("fa")
+                                    .format("jYYYY/jMM/jDD")}</li>`
+                        )
+                        .join("")}</ul></p>`
+                    : "<p>بدون جواب</p>"
+            }</div></body></html>
+    `);
         printWindow.document.close();
         printWindow.print();
     };
@@ -236,31 +354,159 @@ const GetReports = () => {
             )}
             {error && <span className={styles.error}>{error}</span>}
 
-            <section className={styles.filterSection}>
-                <h3>فیلتر گزارش‌ها</h3>
-                <div className={styles.filterControls}>
-                    <select name="status" value={filters.status} onChange={handleFilterChange}>
-                        <option value="">همه وضعیت‌ها</option>
-                        <option value="pending">در انتظار</option>
-                        <option value="in_progress">در حال انجام</option>
-                        <option value="resolved">حل‌شده</option>
-                    </select>
-                    <select name="category_id" value={filters.category_id} onChange={handleFilterChange}>
-                        <option value="">همه دسته‌بندی‌ها</option>
-                        {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                    </select>
-                    <select name="sort" value={filters.sort} onChange={handleFilterChange}>
-                        <option value="latest">جدیدترین</option>
-                        <option value="oldest">قدیمی‌ترین</option>
-                    </select>
-                    <button onClick={() => fetchFilteredReports(1)} className={styles.searchBtn}>جستجو</button>
-                </div>
-            </section>
+            {isAdmin ? (
+                <section className={styles.filterSection}>
+                    <h3>فیلتر نیمه‌پویا گزارش‌ها</h3>
+                    {loading && filterOptions.length === 0 ? (
+                        <div className={styles.loader}>
+                            <span className={styles.loaderSpinner}></span> در حال بارگذاری گزینه‌های فیلتر...
+                        </div>
+                    ) : filterOptions.length === 0 ? (
+                        <p className={styles.noFilters}>گزینه‌ای برای فیلتر یافت نشد.</p>
+                    ) : (
+                        <LocalizationProvider dateAdapter={AdapterMomentJalaali}>
+                            <div className={styles.filterContainer}>
+                                <div className={styles.filterGrid}>
+                                    {filterOptions.map((f) => {
+                                        const { key, label, type, options } = f;
+                                        const rawValue = dynamicFilterValues[key] ?? "";
+
+                                        if (type === "select") {
+                                            return (
+                                                <div key={key} className={styles.filterItem}>
+                                                    <label htmlFor={key} className={styles.filterLabel}>
+                                                        {label}
+                                                    </label>
+                                                    <select
+                                                        id={key}
+                                                        name={key}
+                                                        value={rawValue}
+                                                        onChange={(e) => handleDynamicFilterChange(key, e.target.value)}
+                                                        className={styles.filterSelect}
+                                                    >
+                                                        <option value="">همه {label}</option>
+                                                        {Array.isArray(options) &&
+                                                            options.map((opt) => {
+                                                                if (typeof opt === "string") {
+                                                                    return (
+                                                                        <option key={opt} value={opt}>
+                                                                            {opt === "pending"
+                                                                                ? "در انتظار"
+                                                                                : opt === "in_progress"
+                                                                                    ? "در حال انجام"
+                                                                                    : opt === "resolved"
+                                                                                        ? "حل‌شده"
+                                                                                        : opt === "unprocessed"
+                                                                                            ? "بررسی نشده"
+                                                                                            : opt}
+                                                                        </option>
+                                                                    );
+                                                                }
+                                                                return (
+                                                                    <option key={opt.value} value={opt.value}>
+                                                                        {opt.label}
+                                                                    </option>
+                                                                );
+                                                            })}
+                                                    </select>
+                                                </div>
+                                            );
+                                        }
+
+                                        if (type === "text") {
+                                            return (
+                                                <div key={key} className={styles.filterItem}>
+                                                    <label htmlFor={key} className={styles.filterLabel}>
+                                                        {label}
+                                                    </label>
+                                                    <input
+                                                        id={key}
+                                                        name={key}
+                                                        type="text"
+                                                        value={rawValue}
+                                                        onChange={(e) => handleDynamicFilterChange(key, e.target.value)}
+                                                        placeholder={`جستجو بر اساس ${label}`}
+                                                        className={styles.filterInput}
+                                                    />
+                                                </div>
+                                            );
+                                        }
+
+                                        if (type === "date") {
+                                            const pickerValue = rawValue ? moment(rawValue, "YYYY-MM-DD") : null;
+                                            return (
+                                                <div key={key} className={styles.filterItem}>
+                                                    <label htmlFor={key} className={styles.filterLabel}>
+                                                        {label}
+                                                    </label>
+                                                    <MuiDatePicker
+                                                        value={pickerValue}
+                                                        onChange={(date) => {
+                                                            const val = date ? date.format("YYYY-MM-DD") : "";
+                                                            handleDynamicFilterChange(key, val);
+                                                        }}
+                                                        inputFormat="jYYYY/jMM/jDD"
+                                                        mask="____/__/__"
+                                                        renderInput={(params) => (
+                                                            <TextField
+                                                                {...params}
+                                                                className={styles.datePickerInput}
+                                                                placeholder="انتخاب تاریخ"
+                                                                size="small"
+                                                            />
+                                                        )}
+                                                    />
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })}
+                                </div>
+                                <div className={styles.filterActions}>
+                                    <button onClick={() => performDynamicSearch(1)} className={styles.searchBtn}>
+                                        <FaSearch style={{ marginLeft: "8px" }} /> جستجو
+                                    </button>
+                                    <button onClick={resetDynamicFilters} className={styles.resetBtn}>
+                                        ریست
+                                    </button>
+                                </div>
+                            </div>
+                        </LocalizationProvider>
+                    )}
+                </section>
+            ) : (
+                <section className={styles.filterSection}>
+                    <h3>فیلتر گزارش‌ها</h3>
+                    <div className={styles.filterControls}>
+                        <select name="status" value={filters.status} onChange={handleFilterChange}>
+                            <option value="">همه وضعیت‌ها</option>
+                            <option value="pending">در انتظار</option>
+                            <option value="in_progress">در حال انجام</option>
+                            <option value="resolved">حل‌شده</option>
+                        </select>
+                        <select name="category_id" value={filters.category_id} onChange={handleFilterChange}>
+                            <option value="">همه دسته‌بندی‌ها</option>
+                            {categories.map((cat) => (
+                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                        </select>
+                        <select name="sort" value={filters.sort} onChange={handleFilterChange}>
+                            <option value="latest">جدیدترین</option>
+                            <option value="oldest">قدیمی‌ترین</option>
+                        </select>
+                        <button onClick={() => fetchFilteredReports(1)} className={styles.searchBtn}>
+                            جستجو
+                        </button>
+                    </div>
+                </section>
+            )}
 
             <section className={styles.reportsSection}>
                 <div className={styles.tableHeader}>
                     <h3>لیست گزارش‌ها</h3>
-                    <button onClick={printTable} className={styles.printTableBtn}><FaPrint /> چاپ کل جدول</button>
+                    <button onClick={printTable} className={styles.printTableBtn}>
+                        <FaPrint /> چاپ کل جدول
+                    </button>
                 </div>
                 {loading ? (
                     <div className={styles.loader}>در حال بارگذاری...</div>
@@ -288,7 +534,15 @@ const GetReports = () => {
                                         <tr key={report.id}>
                                             <td>{index + 1}</td>
                                             <td>{report.title || "بدون عنوان"}</td>
-                                            <td><span className={`${styles.statusBadge} ${styles[report.status]}`}>{report.status === "pending" ? "در انتظار" : report.status === "in_progress" ? "در حال انجام" : "حل‌شده"}</span></td>
+                                            <td>
+                                                <span className={`${styles.statusBadge} ${styles[report.status]}`}>
+                                                    {report.status === "pending"
+                                                        ? "در انتظار"
+                                                        : report.status === "in_progress"
+                                                            ? "در حال انجام"
+                                                            : "حل‌شده"}
+                                                </span>
+                                            </td>
                                             <td>{getCategoryName(report)}</td>
                                             <td>{getRegionName(report)}</td>
                                             <td>{report.location || "نامشخص"}</td>
@@ -297,20 +551,56 @@ const GetReports = () => {
                                                 {report.replies && report.replies.length > 0 ? (
                                                     <ul>
                                                         {report.replies.map((reply) => (
-                                                            <li key={reply.id}>ادمین: {reply.admin.name} {reply.admin.family} - توضیح: {reply.comment || "بدون توضیح"} - تاریخ: {moment(reply.done_at).locale("fa").format("jYYYY/jMM/jDD")}</li>
+                                                            <li key={reply.id}>
+                                                                ادمین: {reply.admin.name} {reply.admin.family} - توضیح: {reply.comment || "بدون توضیح"} - تاریخ: {moment(
+                                                                    reply.done_at
+                                                                )
+                                                                    .locale("fa")
+                                                                    .format("jYYYY/jMM/jDD")}
+                                                            </li>
                                                         ))}
                                                     </ul>
-                                                ) : "بدون جواب"}
+                                                ) : (
+                                                    "بدون جواب"
+                                                )}
                                             </td>
                                             <td className={styles.actions}>
-                                                <button onClick={() => openPopup(report)} className={styles.detailsBtn} data-tooltip="نمایش جزئیات"><FaInfoCircle /></button>
-                                                <button onClick={() => printReport(report)} className={styles.printBtn} data-tooltip="چاپ گزارش"><FaPrint /></button>
-                                                <button onClick={() => storeReportAssistance(report.id)} className={styles.assistanceBtn} data-tooltip="داوطلب شدن"><FaPlus /></button>
-                                                <button onClick={() => deleteReportAssistance(report.id)} className={styles.deleteAssistanceBtn} data-tooltip="لغو داوطلبی"><FaMinus /></button>
+                                                <button onClick={() => openPopup(report)} className={styles.detailsBtn} data-tooltip="نمایش جزئیات">
+                                                    <FaInfoCircle />
+                                                </button>
+                                                <button onClick={() => printReport(report)} className={styles.printBtn} data-tooltip="چاپ گزارش">
+                                                    <FaPrint />
+                                                </button>
+                                                <button
+                                                    onClick={() => storeReportAssistance(report.id)}
+                                                    className={styles.assistanceBtn}
+                                                    data-tooltip="داوطلب شدن"
+                                                >
+                                                    <FaPlus />
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteReportAssistance(report.id)}
+                                                    className={styles.deleteAssistanceBtn}
+                                                    data-tooltip="لغو داوطلبی"
+                                                >
+                                                    <FaMinus />
+                                                </button>
                                                 {isAdmin && (
                                                     <>
-                                                        <button onClick={() => deleteReport(report.id)} className={styles.deleteReportBtn} data-tooltip="حذف گزارش"><FaTrash /></button>
-                                                        <button onClick={() => openEditStatus(report)} className={styles.detailsBtn} data-tooltip="تغییر وضعیت"><FaEdit /></button>
+                                                        <button
+                                                            onClick={() => deleteReport(report.id)}
+                                                            className={styles.deleteReportBtn}
+                                                            data-tooltip="حذف گزارش"
+                                                        >
+                                                            <FaTrash />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => openEditStatus(report)}
+                                                            className={styles.detailsBtn}
+                                                            data-tooltip="تغییر وضعیت"
+                                                        >
+                                                            <FaEdit />
+                                                        </button>
                                                     </>
                                                 )}
                                             </td>
@@ -328,24 +618,57 @@ const GetReports = () => {
                     <div className={styles.popupContent}>
                         <button onClick={closePopup} className={styles.closeBtn}>×</button>
                         <h3>{selectedReport.title || "بدون عنوان"}</h3>
-                        <p><strong>وضعیت:</strong> <span className={`${styles.statusBadge} ${styles[selectedReport.status]}`}>{selectedReport.status === "pending" ? "در انتظار" : selectedReport.status === "in_progress" ? "در حال انجام" : "حل‌شده"}</span></p>
-                        <p><strong>توضیحات:</strong> {selectedReport.description || "بدون توضیحات"}</p>
-                        <p><strong>دسته‌بندی:</strong> {getCategoryName(selectedReport)}</p>
-                        <p><strong>منطقه:</strong> {getRegionName(selectedReport)}</p>
-                        <p><strong>مکان:</strong> {selectedReport.location || "نامشخص"}</p>
-                        <p><strong>موقعیت جغرافیایی:</strong> {selectedReport.lat}, {selectedReport.long}</p>
-                        <p><strong>تاریخ ایجاد:</strong> {moment(selectedReport.created_at).locale("fa").format("jYYYY/jMM/jDD")}</p>
+                        <p>
+                            <strong>وضعیت:</strong>{" "}
+                            <span className={`${styles.statusBadge} ${styles[selectedReport.status]}`}>
+                                {selectedReport.status === "pending"
+                                    ? "در انتظار"
+                                    : selectedReport.status === "in_progress"
+                                        ? "در حال انجام"
+                                        : "حل‌شده"}
+                            </span>
+                        </p>
+                        <p>
+                            <strong>توضیحات:</strong> {selectedReport.description || "بدون توضیحات"}
+                        </p>
+                        <p>
+                            <strong>دسته‌بندی:</strong> {getCategoryName(selectedReport)}
+                        </p>
+                        <p>
+                            <strong>منطقه:</strong> {getRegionName(selectedReport)}
+                        </p>
+                        <p>
+                            <strong>مکان:</strong> {selectedReport.location || "نامشخص"}
+                        </p>
+                        <p>
+                            <strong>موقعیت جغرافیایی:</strong> {selectedReport.lat}, {selectedReport.long}
+                        </p>
+                        <p>
+                            <strong>تاریخ ایجاد:</strong> {moment(selectedReport.created_at).locale("fa").format("jYYYY/jMM/jDD")}
+                        </p>
                         <div className={styles.images}>
-                            <p><strong>جواب‌ها:</strong></p>
+                            <p>
+                                <strong>جواب‌ها:</strong>
+                            </p>
                             {selectedReport.replies && selectedReport.replies.length > 0 ? (
                                 <ul>
                                     {selectedReport.replies.map((reply) => (
-                                        <li key={reply.id}>ادمین: {reply.admin.name} {reply.admin.family} - توضیح: {reply.comment || "بدون توضیح"} - تاریخ: {moment(reply.done_at).locale("fa").format("jYYYY/jMM/jDD")}</li>
+                                        <li key={reply.id}>
+                                            ادمین: {reply.admin.name} {reply.admin.family} - توضیح: {reply.comment || "بدون توضیح"} - تاریخ: {moment(
+                                                reply.done_at
+                                            )
+                                                .locale("fa")
+                                                .format("jYYYY/jMM/jDD")}
+                                        </li>
                                     ))}
                                 </ul>
-                            ) : <p>بدون جواب</p>}
+                            ) : (
+                                <p>بدون جواب</p>
+                            )}
                         </div>
-                        <button onClick={() => printReport(selectedReport)} className={styles.printPopupBtn}><FaPrint /> چاپ گزارش</button>
+                        <button onClick={() => printReport(selectedReport)} className={styles.printPopupBtn}>
+                            <FaPrint /> چاپ گزارش
+                        </button>
                     </div>
                 </div>
             )}
@@ -372,10 +695,16 @@ const GetReports = () => {
                             rows="3"
                         />
                         <LocalizationProvider dateAdapter={AdapterMomentJalaali}>
-                            <DatePicker
+                            <MuiDatePicker
                                 value={editStatus.done_at ? moment(editStatus.done_at, "YYYY-MM-DD") : null}
-                                onChange={(newValue) => setEditStatus({ ...editStatus, done_at: newValue.format("YYYY-MM-DD") })}
-                                renderInput={(params) => <input {...params} className={styles.filterInput} />}
+                                onChange={(newValue) =>
+                                    setEditStatus({ ...editStatus, done_at: newValue ? newValue.format("YYYY-MM-DD") : "" })
+                                }
+                                inputFormat="jYYYY/jMM/jDD"
+                                mask="____/__/__"
+                                renderInput={(params) => (
+                                    <TextField {...params} className={styles.filterInput} placeholder="انتخاب تاریخ" size="small" />
+                                )}
                             />
                         </LocalizationProvider>
                         <button
