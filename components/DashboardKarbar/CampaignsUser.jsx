@@ -6,11 +6,12 @@ import "react-toastify/dist/ReactToastify.css";
 import Modal from "../Campaigns/Modal";
 import CampaignList from "../Campaigns/CampaignList";
 import CampaignForm from "../Campaigns/CampaignForm";
-import { FaTrash, FaEdit } from "react-icons/fa"; // آیکون‌ها برای ادمین
-import moment from 'moment-jalaali';
+import { FaTrash, FaEdit } from "react-icons/fa";
+import moment from "moment-jalaali";
 
 const CampaignsUser = () => {
     const [userCampaigns, setUserCampaigns] = useState([]);
+    const [donations, setDonations] = useState([]);
     const [campaigns, setCampaigns] = useState([]);
     const [statuses, setStatuses] = useState([]);
     const [selectedStatus, setSelectedStatus] = useState("");
@@ -64,6 +65,11 @@ const CampaignsUser = () => {
         const result = await response.json();
 
         if (!response.ok) {
+            if (response.status === 401) {
+                toast.error("لطفاً دوباره وارد شوید");
+                setTimeout(() => (window.location.href = "/login"), 3000);
+                return;
+            }
             if (result.message === "شما قبلاً به این کمپین پیوسته‌اید.") {
                 return { success: false, message: result.message };
             }
@@ -79,9 +85,8 @@ const CampaignsUser = () => {
         return date.isValid() ? date.format("jYYYY/jMM/jDD") : "تاریخ نامعتبر";
     };
 
-    // تابع نمایش وضعیت
+    // تابع نمایش وضعیت کمپین
     const getStatusText = (campaign, statuses) => {
-        // اگر campaign.status یه رشته است
         if (typeof campaign.status === "string") {
             switch (campaign.status.toLowerCase()) {
                 case "active":
@@ -96,7 +101,6 @@ const CampaignsUser = () => {
                     return "نامشخص";
             }
         }
-        // اگر campaign.status یه شیء است
         if (campaign.status && typeof campaign.status === "object" && campaign.status.status) {
             switch (campaign.status.status.toLowerCase()) {
                 case "active":
@@ -111,7 +115,6 @@ const CampaignsUser = () => {
                     return "نامشخص";
             }
         }
-        // اگر status_id وجود داره
         if (campaign.status_id && statuses.length) {
             const statusObj = statuses.find((s) => s.id === campaign.status_id);
             if (statusObj) {
@@ -132,6 +135,20 @@ const CampaignsUser = () => {
         return "نامشخص";
     };
 
+    // تابع نمایش وضعیت کمک مالی
+    const getDonationStatusText = (status) => {
+        switch (status) {
+            case "در انتظار پرداخت":
+                return { text: "در انتظار پرداخت", className: styles.statusPending };
+            case "تکمیل‌شده":
+                return { text: "تکمیل‌شده", className: styles.statusCompleted };
+            case "لغو‌شده":
+                return { text: "لغو‌شده", className: styles.statusCancelled };
+            default:
+                return { text: "نامشخص", className: styles.statusUnknown };
+        }
+    };
+
     // دریافت کمپین‌های کاربر معمولی
     const fetchUserCampaigns = async () => {
         setLoading(true);
@@ -143,6 +160,22 @@ const CampaignsUser = () => {
         } catch (err) {
             console.error("خطا در دریافت کمپین‌های کاربر:", err);
             toast.error(err.message || "خطا در دریافت کمپین‌های کاربر");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // دریافت کمک‌های مالی کاربر
+    const fetchDonations = async () => {
+        setLoading(true);
+        try {
+            const result = await sendRequest(`${env.baseUrl}api/myDonates`);
+            console.log("User donations:", result);
+            setDonations(Array.isArray(result.data) ? result.data : []);
+            toast.success("کمک‌های مالی شما با موفقیت دریافت شدند");
+        } catch (err) {
+            console.error("خطا در دریافت کمک‌های مالی:", err);
+            toast.error(err.message || "خطا در دریافت کمک‌های مالی");
         } finally {
             setLoading(false);
         }
@@ -256,7 +289,7 @@ const CampaignsUser = () => {
             toast.info("شما قبلاً به این کمپین پیوسته‌اید.");
         } else if (result.success !== false) {
             toast.success("با موفقیت به کمپین پیوستید");
-            fetchUserCampaigns(); // به‌روزرسانی لیست کمپین‌های کاربر
+            fetchUserCampaigns();
         } else {
             console.error("خطا در پیوستن به کمپین:", result.message);
             toast.error(result.message || "خطا در پیوستن به کمپین");
@@ -277,6 +310,8 @@ const CampaignsUser = () => {
             if (result.status && result.payment_url) {
                 toast.success("در حال انتقال به درگاه پرداخت...");
                 window.location.href = result.payment_url;
+                // به‌روزرسانی کمک‌های مالی پس از پرداخت موفق
+                setTimeout(fetchDonations, 2000); // فراخوانی با تاخیر برای اطمینان از تکمیل پرداخت
             } else {
                 throw new Error("لینک پرداخت دریافت نشد");
             }
@@ -313,14 +348,15 @@ const CampaignsUser = () => {
             fetchCampaigns();
         } else {
             fetchUserCampaigns();
+            fetchDonations();
         }
     }, [isAdmin, selectedStatus]);
 
     // کامپوننت برای نمایش کمپین‌های کاربر معمولی
     const UserCampaignList = () => (
         <div>
-            <h3>کمپین‌های شرکت‌شده</h3>
-            <p>لیست کمپین‌هایی که در آن‌ها شرکت کرده‌اید.</p>
+            <h3 className={styles.sectionTitle}>کمپین‌های شرکت‌شده</h3>
+            <p className={styles.sectionSubtitle}>لیست کمپین‌هایی که در آن‌ها شرکت کرده‌اید.</p>
             {loading ? (
                 <div className={styles.loader}>در حال بارگذاری...</div>
             ) : (
@@ -341,7 +377,44 @@ const CampaignsUser = () => {
                                 <p>
                                     <strong>پایان:</strong> {formatJalaaliDate(campaign.end_date)}
                                 </p>
-                                <p><strong>وضعیت:</strong> {getStatusText(campaign)}</p>
+                                <p>
+                                    <strong>وضعیت:</strong> {getStatusText(campaign)}
+                                </p>
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+            <h3 className={styles.sectionTitle}>کمک‌های مالی شما</h3>
+            <p className={styles.sectionSubtitle}>لیست کمک‌های مالی که برای کمپین‌ها انجام داده‌اید.</p>
+            {loading ? (
+                <div className={styles.loader}>در حال بارگذاری...</div>
+            ) : (
+                <div className={styles.donationList}>
+                    {donations.length === 0 ? (
+                        <p className={styles.noDonations}>شما هیچ کمک مالی ثبت نکرده‌اید.</p>
+                    ) : (
+                        donations.map((donation) => (
+                            <div key={donation.id} className={styles.donationCard}>
+                                <div className={styles.donationHeader}>
+                                    <h4>{donation.campaign.title || "کمپین نامشخص"}</h4>
+                                    <span className={getDonationStatusText(donation.status).className}>
+                                        {getDonationStatusText(donation.status).text}
+                                    </span>
+                                </div>
+                                <p className={styles.donationDescription}>
+                                    {donation.campaign.description || "بدون توضیحات"}
+                                </p>
+                                <p>
+                                    <strong>مبلغ:</strong>{" "}
+                                    {parseFloat(donation.amount).toLocaleString("fa-IR")} تومان
+                                </p>
+                                <p>
+                                    <strong>تاریخ:</strong> {formatJalaaliDate(donation.created_at)}
+                                </p>
+                                <p>
+                                    <strong>شماره رهگیری:</strong> {donation.track_id || "نامشخص"}
+                                </p>
                             </div>
                         ))
                     )}
@@ -435,8 +508,7 @@ const CampaignsUser = () => {
                         <p>
                             <strong>وضعیت:</strong>{" "}
                             <span
-                                className={`${styles.status} ${styles[`status-${selectedCampaign.status?.status || "unknown"}`]
-                                    }`}
+                                className={`${styles.status} ${styles[`status-${selectedCampaign.status?.status || "unknown"}`]}`}
                             >
                                 {getStatusText(selectedCampaign)}
                             </span>
@@ -459,9 +531,7 @@ const CampaignsUser = () => {
                                 type="number"
                                 name="amount"
                                 placeholder="مبلغ حمایت (تومان)"
-                                value={
-                                    paymentData.campaign_id === selectedCampaign.id ? paymentData.amount : ""
-                                }
+                                value={paymentData.campaign_id === selectedCampaign.id ? paymentData.amount : ""}
                                 onChange={(e) => handlePaymentInputChange(e, selectedCampaign.id)}
                                 className={styles.paymentInput}
                             />
