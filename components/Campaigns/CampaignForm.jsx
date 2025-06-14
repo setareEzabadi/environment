@@ -19,7 +19,7 @@ const CampaignForm = ({
     const getStatusText = (status) => {
         switch (status?.toLowerCase()) {
             case 'active': return 'فعال';
-            case 'upcoming': return 'آینده';
+            case 'upcoming': return 'در انتظار شروع';
             case 'ended': return 'پایان‌یافته';
             case 'paused': return 'متوقف';
             default: return status || 'نامشخص';
