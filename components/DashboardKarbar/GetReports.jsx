@@ -235,12 +235,14 @@ const GetReports = () => {
         try {
             const url = new URL(`${env.baseUrl}api/reports/filter`);
             url.searchParams.append("page", page);
+            url.searchParams.append("mine", "true");
+
             if (filters.status) url.searchParams.append("status", filters.status);
             if (filters.category_id) url.searchParams.append("category_id", filters.category_id);
             url.searchParams.append("sort", filters.sort);
 
             const result = await sendRequest(url.toString());
-            setReports(Array.isArray(result.data) ? result.data : []);
+            setReports(Array.isArray(result.data.data) ? result.data.data : []);
             setPagination({
                 current_page: result.current_page || 1,
                 last_page: result.last_page || 1,
@@ -281,7 +283,7 @@ const GetReports = () => {
         const printWindow = window.open("", "_blank");
         printWindow.document.write(`
       <html dir="rtl">
-        <head><title>چاپ گزارش‌ها</title><style>body{font-family:'iranSans',sans-serif;direction:rtl;padding:20px}h2{text-align:center}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:right}.statusBadge{padding:6px 12px;border-radius:12px}.pending{background:#fef3c7;color:#d97706}.in_progress{background:#dbeafe;color:#2563eb}.resolved{background:#d1fae5;color:#10b981}</style></head>
+        <head><title>چاپ گزارش‌ها</title><style>body{font-family:'iranSans',sans-serif;direction:rtl;padding:20px}h2{text-align:center}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:right}.statusBadge{padding:6px 12px;border-radius:12px}.pending{background:#fef3c7;color:#d97706}.in_progress{background:#dbeafe;color:#2563eb}.resolved{background:#d1fae5;color:#10b981}.unprocessed { background:rgb(250, 209, 209); color:rgb(185, 16, 16); }</style></head>
         <body><h2>لیست گزارش‌ها</h2><table><thead><tr><th>#</th><th>عنوان</th><th>وضعیت</th><th>دسته‌بندی</th><th>منطقه</th><th>مکان</th><th>تاریخ</th></tr></thead><tbody>${reports
                 .map(
                     (report, index) =>
@@ -299,7 +301,7 @@ const GetReports = () => {
     const printReport = (report) => {
         const printWindow = window.open("", "_blank");
         printWindow.document.write(`
-      <html dir="rtl"><head><title>چاپ گزارش ${report.title || "بدون عنوان"}</title><style>body{font-family:'iranSans',sans-serif;direction:rtl;padding:20px}.report{max-width:800px;margin:auto;padding:20px;border-radius:12px}.statusBadge{padding:6px 12px;border-radius:12px}.pending{background:#fef3c7;color:#d97706}.in_progress{background:#dbeafe;color:#2563eb}.resolved{background:#d1fae5;color:#10b981}</style></head>
+      <html dir="rtl"><head><title>چاپ گزارش ${report.title || "بدون عنوان"}</title><style>body{font-family:'iranSans',sans-serif;direction:rtl;padding:20px}.report{max-width:800px;margin:auto;padding:20px;border-radius:12px}.statusBadge{padding:6px 12px;border-radius:12px}.pending{background:#fef3c7;color:#d97706}.in_progress{background:#dbeafe;color:#2563eb}.resolved{background:#d1fae5;color:#10b981}.unprocessed { background:rgb(250, 209, 209); color:rgb(185, 16, 16); }</style></head>
       <body><div class="report"><h2>${report.title || "بدون عنوان"}</h2><p><strong>وضعیت:</strong><span class="statusBadge ${report.status
             }">${report.status === "pending" ? "در انتظار" : report.status === "in_progress" ? "در حال انجام" : "حل‌شده"
             }</span></p><p><strong>توضیحات:</strong>${report.description || "بدون توضیحات"}</p><p><strong>دسته‌بندی:</strong>${getCategoryName(
@@ -397,7 +399,7 @@ const GetReports = () => {
                                                                                     : opt === "resolved"
                                                                                         ? "حل‌شده"
                                                                                         : opt === "unprocessed"
-                                                                                            ? "بررسی نشده"
+                                                                                            ? "پیگیری نشده"
                                                                                             : opt}
                                                                         </option>
                                                                     );
@@ -483,6 +485,7 @@ const GetReports = () => {
                             <option value="pending">در انتظار</option>
                             <option value="in_progress">در حال انجام</option>
                             <option value="resolved">حل‌شده</option>
+                            <option value="unprocessed">پیگیری نشده</option>
                         </select>
                         <select name="category_id" value={filters.category_id} onChange={handleFilterChange}>
                             <option value="">همه دسته‌بندی‌ها</option>
@@ -538,9 +541,11 @@ const GetReports = () => {
                                                 <span className={`${styles.statusBadge} ${styles[report.status]}`}>
                                                     {report.status === "pending"
                                                         ? "در انتظار"
-                                                        : report.status === "in_progress"
-                                                            ? "در حال انجام"
-                                                            : "حل‌شده"}
+                                                        : report.status === "unprocessed"
+                                                            ? "پیگیری نشده"
+                                                            : report.status === "in_progress"
+                                                                ? "در حال انجام"
+                                                                : "حل‌شده"}
                                                 </span>
                                             </td>
                                             <td>{getCategoryName(report)}</td>
@@ -686,6 +691,7 @@ const GetReports = () => {
                             <option value="pending">در انتظار</option>
                             <option value="in_progress">در حال انجام</option>
                             <option value="resolved">حل‌شده</option>
+                            <option value="unprocessed">پیگیری نشده</option>
                         </select>
                         <textarea
                             value={editStatus.comment || ""}
