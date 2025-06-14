@@ -24,7 +24,7 @@ const ReportBuilder = () => {
             case "active":
                 return "فعال";
             case "upcoming":
-                return "آینده";
+                return "در انتظار شروع";
             case "ended":
                 return "پایان‌یافته";
             case "paused":
