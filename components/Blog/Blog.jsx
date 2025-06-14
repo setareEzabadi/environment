@@ -42,7 +42,7 @@ const Blog = () => {
                         <div className={styles.cardContent}>
                             <h2 className={styles.cardTitle}>{region.name}</h2>
                             <p className={styles.cardMeta}>نوع: {region.type}</p>
-                            <p className={styles.cardMeta}>استان: {region.province}</p>
+                            {/* <p className={styles.cardMeta}>استان: {region.province}</p> */}
                             <p className={styles.cardDescription}>{region.description}</p>
                         </div>
                     </div>
