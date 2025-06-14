@@ -43,7 +43,7 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
         setTrackedReport(null);
 
         try {
-            const url = `http://127.0.0.1:8000/api/report/track?tracking_code=${encodeURIComponent(searchCode)}`;
+            const url = `${env.baseUrl}api/report/track?tracking_code=${encodeURIComponent(searchCode)}`;
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
@@ -173,14 +173,18 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
             if (filters.status) url.searchParams.append('status', filters.status);
             if (filters.category_id) url.searchParams.append('category_id', filters.category_id);
             url.searchParams.append('sort', filters.sort);
-
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
             const response = await fetch(url, {
-                headers: { 'Content-Type': 'application/json' },
-                ...(token && { Authorization: `Bearer ${token}` }),
+                headers,
             });
             if (!response.ok) throw new Error(`خطای HTTP! وضعیت: ${response.status}`);
             const result = await response.json();
-            setReports(result.data || []);
+            setReports(result?.data?.data || []);
             setPagination({
                 current_page: result.current_page || 1,
                 last_page: result.last_page || 1,
@@ -346,7 +350,7 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
 
     const performDynamicSearch = async () => {
         setLoading(true);
-        setFilterMessage(''); 
+        setFilterMessage('');
         const token = localStorage.getItem('auth_token');
         if (!token) {
             toast.error('لطفاً ابتدا وارد حساب کاربری خود شوید!');
@@ -419,6 +423,7 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
                     .pending { background: #fef3c7; color: #d97706; }
                     .in_progress { background: #dbeafe; color: #2563eb; }
                     .resolved { background: #d1fae5; color: #10b981; }
+                    .unprocessed { background:rgb(250, 209, 209); color:rgb(185, 16, 16); }
                 </style>
             </head>
             <body>
@@ -482,6 +487,7 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
                     .pending { background: #fef3c7; color: #d97706; }
                     .in_progress { background: #dbeafe; color: #2563eb; }
                     .resolved { background: #d1fae5; color: #10b981; }
+                    .unprocessed { background:rgb(250, 209, 209); color:rgb(185, 16, 16); }
                     .images { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
                     img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0; }
                 </style>
@@ -594,7 +600,7 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
                                                                                     : opt === 'resolved'
                                                                                         ? 'حل‌شده'
                                                                                         : opt === 'unprocessed'
-                                                                                            ? 'بررسی نشده'
+                                                                                            ? 'پیگیری نشده'
                                                                                             : opt}
                                                                         </option>
                                                                     );
@@ -688,6 +694,7 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
                             <option value="pending">در انتظار</option>
                             <option value="in_progress">در حال انجام</option>
                             <option value="resolved">حل‌شده</option>
+                            <option value="unprocessed">پیگیری نشده</option>
                         </select>
                         <select name="category_id" value={filters.category_id} onChange={handleFilterChange}>
                             <option value="">همه دسته‌بندی‌ها</option>
@@ -743,11 +750,13 @@ const ManageReports = ({ categories, regions, isAdmin }) => {
                                             <td>{report.title || 'بدون عنوان'}</td>
                                             <td>
                                                 <span className={`${styles.statusBadge} ${styles[report.status]}`}>
-                                                    {report.status === 'pending'
-                                                        ? 'در انتظار'
-                                                        : report.status === 'in_progress'
-                                                            ? 'در حال انجام'
-                                                            : 'حل‌شده'}
+                                                    {report.status === "pending"
+                                                        ? "در انتظار"
+                                                        : report.status === "unprocessed"
+                                                            ? "پیگیری نشده"
+                                                            : report.status === "in_progress"
+                                                                ? "در حال انجام"
+                                                                : "حل‌شده"}
                                                 </span>
                                             </td>
                                             <td>{getCategoryName(report)}</td>
