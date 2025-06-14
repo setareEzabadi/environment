@@ -922,6 +922,11 @@
   color: #10b981;
 }
 
+.statusBadge.unprocessed {
+  background: #fad1d1;
+  color: #b91010;
+}
+
 .actions {
   display: flex;
   gap: 0.5rem;
