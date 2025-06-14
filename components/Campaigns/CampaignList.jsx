@@ -8,6 +8,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterMomentJalaali } from '@mui/x-date-pickers/AdapterMomentJalaali';
 import { DatePicker as MuiDatePicker } from '@mui/x-date-pickers/DatePicker';
 import TextField from '@mui/material/TextField';
+import env from '../../env';
 
 const formatJalaaliDate = (dateString) => {
     if (!dateString) return 'نامشخص';
@@ -53,7 +54,7 @@ const CampaignList = ({
                 case 'active':
                     return 'فعال';
                 case 'upcoming':
-                    return 'آینده';
+                    return 'در انتظار شروع';
                 case 'ended':
                     return 'پایان‌یافته';
                 case 'paused':
@@ -67,7 +68,7 @@ const CampaignList = ({
                 case 'active':
                     return 'فعال';
                 case 'upcoming':
-                    return 'آینده';
+                    return 'در انتظار شروع';
                 case 'ended':
                     return 'پایان‌یافته';
                 case 'paused':
@@ -83,7 +84,7 @@ const CampaignList = ({
                     case 'active':
                         return 'فعال';
                     case 'upcoming':
-                        return 'آینده';
+                        return 'در انتظار شروع';
                     case 'ended':
                         return 'پایان‌یافته';
                     case 'paused':
@@ -112,7 +113,7 @@ const CampaignList = ({
         }
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/getCampaign?campaign_id=${campaign_id}`, {
+            const response = await fetch(`${env.baseUrl}api/getCampaign?campaign_id=${campaign_id}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -139,7 +140,7 @@ const CampaignList = ({
         }
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/campaigns/participants?campaign_id=${campaign_id}`, {
+            const response = await fetch(`${env.baseUrl}api/campaigns/participants?campaign_id=${campaign_id}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -171,7 +172,7 @@ const CampaignList = ({
         }
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/campaigns/startPayment`, {
+            const response = await fetch(`${env.baseUrl}api/campaigns/startPayment`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -207,7 +208,7 @@ const CampaignList = ({
         }
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/getCampaign?campaign_id=${campaign_id}`, {
+            const response = await fetch(`${env.baseUrl}api/getCampaign?campaign_id=${campaign_id}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -243,7 +244,7 @@ const CampaignList = ({
 
         setLoadingFilters(true);
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/CampaignFilterOptions', {
+            const response = await fetch('${env.baseUrl}api/CampaignFilterOptions', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -278,7 +279,7 @@ const CampaignList = ({
 
         setLoading(true);
         try {
-            const url = new URL('http://127.0.0.1:8000/api/searchCampaigns');
+            const url = new URL('${env.baseUrl}api/searchCampaigns');
             Object.entries(dynamicFilterValues).forEach(([key, value]) => {
                 if (value !== '' && value !== null && value !== undefined) {
                     url.searchParams.append(key, value);
