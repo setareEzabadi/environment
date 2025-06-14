@@ -92,7 +92,7 @@ const CampaignsUser = () => {
                 case "active":
                     return "فعال";
                 case "upcoming":
-                    return "آینده";
+                    return "در انتظار شروع";
                 case "ended":
                     return "پایان‌یافته";
                 case "paused":
@@ -106,7 +106,7 @@ const CampaignsUser = () => {
                 case "active":
                     return "فعال";
                 case "upcoming":
-                    return "آینده";
+                    return "در انتظار شروع";
                 case "ended":
                     return "پایان‌یافته";
                 case "paused":
@@ -122,7 +122,7 @@ const CampaignsUser = () => {
                     case "active":
                         return "فعال";
                     case "upcoming":
-                        return "آینده";
+                        return "در انتظار شروع";
                     case "ended":
                         return "پایان‌یافته";
                     case "paused":
@@ -156,7 +156,7 @@ const CampaignsUser = () => {
             const result = await sendRequest(`${env.baseUrl}api/user/campaigns`);
             console.log("User campaigns:", result);
             setUserCampaigns(Array.isArray(result.data) ? result.data : []);
-            toast.success("کمپین‌های شما با موفقیت دریافت شدند");
+            toast.success("کمپین‌های شما با موفقیت دریافت شدند", { toastId: "user-campaigns-success" });
         } catch (err) {
             console.error("خطا در دریافت کمپین‌های کاربر:", err);
             toast.error(err.message || "خطا در دریافت کمپین‌های کاربر");
@@ -172,7 +172,7 @@ const CampaignsUser = () => {
             const result = await sendRequest(`${env.baseUrl}api/myDonates`);
             console.log("User donations:", result);
             setDonations(Array.isArray(result.data) ? result.data : []);
-            toast.success("کمک‌های مالی شما با موفقیت دریافت شدند");
+            toast.success("کمک‌های مالی شما با موفقیت دریافت شدند", { toastId: "donations-success" });
         } catch (err) {
             console.error("خطا در دریافت کمک‌های مالی:", err);
             toast.error(err.message || "خطا در دریافت کمک‌های مالی");
