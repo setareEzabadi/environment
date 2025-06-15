@@ -244,7 +244,7 @@ const CampaignList = ({
 
         setLoadingFilters(true);
         try {
-            const response = await fetch('${env.baseUrl}api/CampaignFilterOptions', {
+            const response = await fetch(`${env.baseUrl}api/CampaignFilterOptions`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
