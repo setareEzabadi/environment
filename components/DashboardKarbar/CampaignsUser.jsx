@@ -398,9 +398,9 @@ const CampaignsUser = () => {
                             <div key={donation.id} className={styles.donationCard}>
                                 <div className={styles.donationHeader}>
                                     <h4>{donation.campaign.title || "کمپین نامشخص"}</h4>
-                                    <span className={getDonationStatusText(donation.status).className}>
+                                    {/* <span className={getDonationStatusText(donation.status).className}>
                                         {getDonationStatusText(donation.status).text}
-                                    </span>
+                                    </span> */}
                                 </div>
                                 <p className={styles.donationDescription}>
                                     {donation.campaign.description || "بدون توضیحات"}
