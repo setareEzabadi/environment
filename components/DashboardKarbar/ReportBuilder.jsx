@@ -7,6 +7,13 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterMomentJalaali } from "@mui/x-date-pickers/AdapterMomentJalaali";
 import moment from "moment-jalaali";
 
+// تابع کمکی برای دسترسی به فیلدهای تودرتو
+const getNestedValue = (obj, path) => {
+    return path.split(".").reduce((current, key) => {
+        return current && current[key] !== undefined ? current[key] : null;
+    }, obj);
+};
+
 const ReportBuilder = () => {
     const [tables, setTables] = useState([]);
     const [selectedTable, setSelectedTable] = useState("");
@@ -20,7 +27,14 @@ const ReportBuilder = () => {
 
     // تابع برای ترجمه وضعیت‌ها به فارسی
     const getStatusText = (status) => {
-        switch (status?.toLowerCase()) {
+        // اگه status یه شیء بود، مقدار فیلد status رو بگیر
+        let statusValue = typeof status === "object" && status !== null ? status.status : status;
+        // اگه statusValue عدد بود، به رشته تبدیلش کن
+        statusValue = typeof statusValue === "number" ? statusValue.toString() : statusValue;
+        // اگه statusValue وجود نداشت یا null بود، "نامشخص" برگردون
+        if (!statusValue) return "نامشخص";
+        // حالا statusValue یه رشته‌ست، می‌تونیم toLowerCase رو روش صدا کنیم
+        switch (statusValue.toLowerCase()) {
             case "active":
                 return "فعال";
             case "upcoming":
@@ -29,8 +43,12 @@ const ReportBuilder = () => {
                 return "پایان‌یافته";
             case "paused":
                 return "متوقف";
+            case "unprocessed":
+                return "پردازش‌نشده";
+            case "2": // برای status_id که عدد 2 به معنای "active" هست
+                return "فعال";
             default:
-                return status || "نامشخص";
+                return statusValue;
         }
     };
 
@@ -67,7 +85,15 @@ const ReportBuilder = () => {
                     });
                     if (!response.ok) throw new Error("خطا در دریافت فیلدها");
                     const data = await response.json();
-                    setFields(data.fields);
+                    // اضافه کردن فیلدهای تودرتو به لیست فیلدها
+                    const nestedFields = [
+                        { key: "category.name", label: "نام دسته‌بندی", type: "text" },
+                        { key: "region.name", label: "نام منطقه", type: "text" },
+                        { key: "user.name", label: "نام کاربر", type: "text" },
+                        { key: "user.family", label: "نام خانوادگی کاربر", type: "text" },
+                        { key: "campaign.title", label: "عنوان کمپین", type: "text" },
+                    ];
+                    setFields([...data.fields, ...nestedFields]);
                     setFilters([{ field: "", operator: "", value: "", value2: "" }]);
                 } catch (err) {
                     setError("خطا در دریافت فیلدهای جدول");
@@ -86,7 +112,7 @@ const ReportBuilder = () => {
                 { value: "between", label: "بین" },
             ];
         }
-        return [{ value: "=", label: "مساوی" }];
+        return [{ value: "=", label: "مساوی" }, { value: "like", label: "شامل" }];
     };
 
     const addFilter = () => {
@@ -154,25 +180,25 @@ const ReportBuilder = () => {
         const printContent = document.getElementById("printableTable").innerHTML;
         const printWindow = window.open("", "_blank");
         printWindow.document.write(`
-            <html>
-                <head>
-                    <title>گزارش</title>
-                    <style>
-                        @page { size: A4; margin: 1cm; }
-                        body { font-family: iranSans, sans-serif; direction: rtl; }
-                        table { width: 100%; max-width: 190mm; border-collapse: collapse; margin: 20px 0; font-size: 9pt; }
-                        th, td { border: 1px solid #ddd; padding: 4px; text-align: right; word-wrap: break-word; white-space: normal; max-width: 30mm; overflow: hidden; }
-                        th { background-color: #f4f4f4; font-size: 9pt; }
-                        @media print {
-                            body { margin: 0; padding: 0; }
-                            table { page-break-inside: auto; }
-                            tr { page-break-inside: avoid; page-break-after: auto; }
-                        }
-                    </style>
-                </head>
-                <body>${printContent}</body>
-            </html>
-        `);
+      <html>
+        <head>
+          <title>گزارش</title>
+          <style>
+            @page { size: A4; margin: 1cm; }
+            body { font-family: iranSans, sans-serif; direction: rtl; }
+            table { width: 100%; max-width: 190mm; border-collapse: collapse; margin: 20px 0; font-size: 9pt; }
+            th, td { border: 1px solid #ddd; padding: 4px; text-align: right; word-wrap: break-word; white-space: normal; max-width: 30mm; overflow: hidden; }
+            th { background-color: #f4f4f4; font-size: 9pt; }
+            @media print {
+              body { margin: 0; padding: 0; }
+              table { page-break-inside: auto; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+            }
+          </style>
+        </head>
+        <body>${printContent}</body>
+      </html>
+    `);
         printWindow.document.close();
         printWindow.focus();
         printWindow.print();
@@ -180,7 +206,6 @@ const ReportBuilder = () => {
     };
 
     const headerTranslations = {
-        // کمپین‌ها
         id: "شناسه",
         organizer_id: "شناسه برگزارکننده",
         title: "عنوان",
@@ -191,16 +216,13 @@ const ReportBuilder = () => {
         status_id: "شناسه وضعیت",
         created_at: "ایجاد شده",
         updated_at: "به‌روزرسانی شده",
-        // گزارش‌ها
         category_id: "شناسه دسته‌بندی",
         lat: "عرض جغرافیایی",
         long: "طول جغرافیایی",
         region_id: "شناسه منطقه",
         status: "وضعیت",
         user_id: "شناسه کاربر",
-        // شرکت‌کنندگان کمپین
         campaign_id: "شناسه کمپین",
-        // کاربران
         name: "نام",
         family: "نام خانوادگی",
         email: "ایمیل",
@@ -210,27 +232,70 @@ const ReportBuilder = () => {
         phone: "تلفن",
         points: "امتیازات",
         role: "نقش",
-        // حمایت مالی
         amount: "مبلغ",
         ref_number: "شماره مرجع",
         track_id: "شناسه رهگیری",
-        // امدادرسانی‌ها
         report_id: "شناسه گزارش",
+        "category.name": "نام دسته‌بندی",
+        "region.name": "نام منطقه",
+        "user.name": "نام کاربر",
+        "user.family": "نام خانوادگی کاربر",
+        "campaign.title": "عنوان کمپین",
     };
 
     const renderDynamicTable = () => {
-        if (results.length === 0) return null;
+        if (results.length === 0) {
+            return (
+                <div className={styles.noData}>
+                    هیچ داده‌ای وجود ندارد
+                </div>
+            );
+        }
 
-        // فیلدهایی که نمی‌خوایم نمایش داده بشن (مثل آدرس عکس‌ها و اطلاعات حساس)
-        const excludedFields = ["avatar", "password", "remember_token"];
-        const headers = Object.keys(results[0]).filter((key) => !excludedFields.includes(key));
+        // تعریف فیلدهای نمایش برای جدول‌های مختلف
+        let displayFields = [];
+        if (selectedTable === "users") {
+            // برای جدول کاربران
+            displayFields = [
+                "id",
+                "name",
+                "family",
+                "email",
+                "phone",
+                "role",
+                "organization",
+                "national_code",
+            ];
+        } else {
+            // برای جدول‌های دیگر (مثل کمپین‌ها و گزارش‌ها)
+            displayFields = [
+                "id",
+                "title",
+                "description",
+                "location",
+                "category.name",
+                "region.name",
+                "user.name",
+                "user.family",
+                "campaign.title",
+                "start_date",
+                "end_date",
+                "status",
+                "status_id",
+            ];
+        }
+
+        // فیلتر کردن فیلدهایی که داده دارن
+        displayFields = displayFields.filter((field) => {
+            return results.some((item) => getNestedValue(item, field) !== null);
+        });
 
         return (
             <div id="printableTable" className={styles.tableWrapper}>
                 <table className={styles.resultsTable}>
                     <thead>
                         <tr>
-                            {headers.map((header) => (
+                            {displayFields.map((header) => (
                                 <th key={header}>{headerTranslations[header] || header.replace(/_/g, " ")}</th>
                             ))}
                         </tr>
@@ -238,17 +303,23 @@ const ReportBuilder = () => {
                     <tbody>
                         {results.map((item, index) => (
                             <tr key={index}>
-                                {headers.map((header) => (
+                                {displayFields.map((header) => (
                                     <td key={header}>
-                                        {item[header] === null || item[header] === ""
-                                            ? "—"
-                                            : header === "status_id" || header === "status"
-                                                ? getStatusText(item[header])
-                                                : header.includes("date") || header.includes("created_at") || header.includes("updated_at")
-                                                    ? header.includes("at")
-                                                        ? formatJalaliDateTime(item[header])
-                                                        : formatJalaliDate(item[header])
-                                                    : item[header]}
+                                        {(() => {
+                                            const value = getNestedValue(item, header);
+                                            if (value === null || value === "") return "—";
+                                            if (header === "status") {
+                                                return getStatusText(value);
+                                            }
+                                            if (header === "status_id") {
+                                                const statusObj = getNestedValue(item, "status");
+                                                return getStatusText(statusObj || value);
+                                            }
+                                            if (header.includes("date") && selectedTable !== "users") {
+                                                return formatJalaliDate(value);
+                                            }
+                                            return value;
+                                        })()}
                                     </td>
                                 ))}
                             </tr>
@@ -325,9 +396,7 @@ const ReportBuilder = () => {
                                                             .find((f) => f.key === filter.field)
                                                             ?.options.map((opt) => (
                                                                 <option key={opt.value} value={opt.value}>
-                                                                    {filter.field === "status_id"
-                                                                        ? getStatusText(opt.label)
-                                                                        : opt.label}
+                                                                    {filter.field === "status_id" ? getStatusText(opt.label) : opt.label}
                                                                 </option>
                                                             ))}
                                                     </select>
@@ -336,18 +405,10 @@ const ReportBuilder = () => {
                                                         <DatePicker
                                                             value={filter.value ? moment(filter.value, "YYYY-MM-DD") : null}
                                                             onChange={(newValue) =>
-                                                                updateFilter(
-                                                                    index,
-                                                                    "value",
-                                                                    newValue ? newValue.format("YYYY-MM-DD") : ""
-                                                                )
+                                                                updateFilter(index, "value", newValue ? newValue.format("YYYY-MM-DD") : "")
                                                             }
                                                             renderInput={(params) => (
-                                                                <input
-                                                                    {...params}
-                                                                    className={styles.filterInput}
-                                                                    placeholder="تاریخ (جدید)"
-                                                                />
+                                                                <input {...params} className={styles.filterInput} placeholder="تاریخ (جدید)" />
                                                             )}
                                                         />
                                                     </LocalizationProvider>
@@ -365,29 +426,17 @@ const ReportBuilder = () => {
                                                         <DatePicker
                                                             value={filter.value2 ? moment(filter.value2, "YYYY-MM-DD") : null}
                                                             onChange={(newValue) =>
-                                                                updateFilter(
-                                                                    index,
-                                                                    "value2",
-                                                                    newValue ? newValue.format("YYYY-MM-DD") : ""
-                                                                )
+                                                                updateFilter(index, "value2", newValue ? newValue.format("YYYY-MM-DD") : "")
                                                             }
                                                             renderInput={(params) => (
-                                                                <input
-                                                                    {...params}
-                                                                    className={styles.filterInput}
-                                                                    placeholder="تا تاریخ (جدید)"
-                                                                />
+                                                                <input {...params} className={styles.filterInput} placeholder="تا تاریخ (جدید)" />
                                                             )}
                                                         />
                                                     </LocalizationProvider>
                                                 )}
                                             </>
                                         )}
-                                        <button
-                                            onClick={() => removeFilter(index)}
-                                            className={styles.removeFilterBtn}
-                                            title="حذف فیلتر"
-                                        >
+                                        <button onClick={() => removeFilter(index)} className={styles.removeFilterBtn} title="حذف فیلتر">
                                             <FaTrash />
                                         </button>
                                     </>
