@@ -392,7 +392,7 @@ const LoginFlow = () => {
                             <input
                                 className={styles.input}
                                 type="password"
-                                placeholder="پسورد"
+                                placeholder="Aa123456@"
                                 value={registerData.password}
                                 onChange={(e) =>
                                     setRegisterData({ ...registerData, password: e.target.value })
