@@ -21,7 +21,6 @@ const GetReports = () => {
     const [showHelp, setShowHelp] = useState(false);
     const [selectedReport, setSelectedReport] = useState(null);
     const [editStatus, setEditStatus] = useState(null);
-    // اضافه شده برای فیلتر نیمه‌پویا
     const [filterOptions, setFilterOptions] = useState([]);
     const [dynamicFilterValues, setDynamicFilterValues] = useState({});
     const [filterMessage, setFilterMessage] = useState("");
@@ -50,7 +49,7 @@ const GetReports = () => {
         await fetchReports(isAdminUser);
         await fetchCategories();
         if (isAdminUser) {
-            await fetchFilterOptions(); // فقط برای ادمین‌ها
+            await fetchFilterOptions();
         }
     };
 
@@ -73,9 +72,8 @@ const GetReports = () => {
             throw new Error(result.message || `خطای HTTP! وضعیت: ${response.status}`);
         }
 
-        // اگه status: false بود و data خالی بود، ارور نندازیم
         if (result.status === false && Array.isArray(result.data) && result.data.length === 0) {
-            return result; // پاسخ رو همون‌طور برگردون
+            return result;
         }
 
         return result;
@@ -139,7 +137,7 @@ const GetReports = () => {
 
     const performDynamicSearch = async (page = 1) => {
         setLoading(true);
-        setFilterMessage(""); // ریست پیام
+        setFilterMessage("");
         try {
             const url = new URL(`${env.baseUrl}api/searchReports`);
             url.searchParams.append("page", page);
@@ -152,7 +150,7 @@ const GetReports = () => {
 
             if (result.status === false && Array.isArray(result.data) && result.data.length === 0) {
                 setReports([]);
-                setFilterMessage(result.message || "گزارشی یافت نشد"); // ذخیره پیام بک‌اند
+                setFilterMessage(result.message || "گزارشی یافت نشد");
                 setPagination({ current_page: 1, last_page: 1, links: [] });
             } else {
                 setReports(Array.isArray(result.data) ? result.data : []);
@@ -271,7 +269,7 @@ const GetReports = () => {
             initialValues[f.key] = "";
         });
         setDynamicFilterValues(initialValues);
-        fetchReports(isAdmin); // بازگرداندن گزارش‌های اولیه
+        fetchReports(isAdmin);
         toast.success("فیلترها با موفقیت بازنشانی شد");
     };
 
@@ -304,7 +302,7 @@ const GetReports = () => {
       <html dir="rtl"><head><title>چاپ گزارش ${report.title || "بدون عنوان"}</title><style>body{font-family:'iranSans',sans-serif;direction:rtl;padding:20px}.report{max-width:800px;margin:auto;padding:20px;border-radius:12px}.statusBadge{padding:6px 12px;border-radius:12px}.pending{background:#fef3c7;color:#d97706}.in_progress{background:#dbeafe;color:#2563eb}.resolved{background:#d1fae5;color:#10b981}.unprocessed { background:rgb(250, 209, 209); color:rgb(185, 16, 16); }</style></head>
       <body><div class="report"><h2>${report.title || "بدون عنوان"}</h2><p><strong>وضعیت:</strong><span class="statusBadge ${report.status
             }">${report.status === "pending" ? "در انتظار" : report.status === "in_progress" ? "در حال انجام" : "حل‌شده"
-            }</span></p><p><strong>توضیحات:</strong>${report.description || "بدون توضیحات"}</p><p><strong>دسته‌بندی:</strong>${getCategoryName(
+            }</span></p><p><strong>ثبت‌کننده:</strong> ${report.user ? `${report.user.name} ${report.user.family} (${report.user.email})` : "نامشخص"}</p><p><strong>توضیحات:</strong>${report.description || "بدون توضیحات"}</p><p><strong>دسته‌بندی:</strong>${getCategoryName(
                 report
             )}</p><p><strong>منطقه:</strong>${getRegionName(report)}</p><p><strong>مکان:</strong>${report.location || "نامشخص"
             }</p><p><strong>موقعیت جغرافیایی:</strong>${report.lat}, ${report.long}</p><p><strong>تاریخ ایجاد:</strong>${moment(
@@ -633,6 +631,14 @@ const GetReports = () => {
                                         : "حل‌شده"}
                             </span>
                         </p>
+                        {isAdmin && (
+                            <p>
+                                <strong>ثبت‌کننده:</strong>{" "}
+                                {selectedReport.user
+                                    ? `${selectedReport.user.name} ${selectedReport.user.family} (${selectedReport.user.email})`
+                                    : "نامشخص"}
+                            </p>
+                        )}
                         <p>
                             <strong>توضیحات:</strong> {selectedReport.description || "بدون توضیحات"}
                         </p>
