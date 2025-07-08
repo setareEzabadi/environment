@@ -27,13 +27,9 @@ const ReportBuilder = () => {
 
     // تابع برای ترجمه وضعیت‌ها به فارسی
     const getStatusText = (status) => {
-        // اگه status یه شیء بود، مقدار فیلد status رو بگیر
         let statusValue = typeof status === "object" && status !== null ? status.status : status;
-        // اگه statusValue عدد بود، به رشته تبدیلش کن
         statusValue = typeof statusValue === "number" ? statusValue.toString() : statusValue;
-        // اگه statusValue وجود نداشت یا null بود، "نامشخص" برگردون
         if (!statusValue) return "نامشخص";
-        // حالا statusValue یه رشته‌ست، می‌تونیم toLowerCase رو روش صدا کنیم
         switch (statusValue.toLowerCase()) {
             case "active":
                 return "فعال";
@@ -43,10 +39,14 @@ const ReportBuilder = () => {
                 return "پایان‌یافته";
             case "paused":
                 return "متوقف";
+            case "pending":
+                return "در انتظار";
+            case "in_progress":
+                return "در حال بررسی";
+            case "resolved":
+                return "حل شده";
             case "unprocessed":
                 return "پردازش‌نشده";
-            case "2": // برای status_id که عدد 2 به معنای "active" هست
-                return "فعال";
             default:
                 return statusValue;
         }
@@ -85,15 +85,7 @@ const ReportBuilder = () => {
                     });
                     if (!response.ok) throw new Error("خطا در دریافت فیلدها");
                     const data = await response.json();
-                    // اضافه کردن فیلدهای تودرتو به لیست فیلدها
-                    const nestedFields = [
-                        { key: "category.name", label: "نام دسته‌بندی", type: "text" },
-                        { key: "region.name", label: "نام منطقه", type: "text" },
-                        { key: "user.name", label: "نام کاربر", type: "text" },
-                        { key: "user.family", label: "نام خانوادگی کاربر", type: "text" },
-                        { key: "campaign.title", label: "عنوان کمپین", type: "text" },
-                    ];
-                    setFields([...data.fields, ...nestedFields]);
+                    setFields([...data.fields]);
                     setFilters([{ field: "", operator: "", value: "", value2: "" }]);
                 } catch (err) {
                     setError("خطا در دریافت فیلدهای جدول");
@@ -252,10 +244,8 @@ const ReportBuilder = () => {
             );
         }
 
-        // تعریف فیلدهای نمایش برای جدول‌های مختلف
         let displayFields = [];
         if (selectedTable === "users") {
-            // برای جدول کاربران
             displayFields = [
                 "id",
                 "name",
@@ -266,8 +256,19 @@ const ReportBuilder = () => {
                 "organization",
                 "national_code",
             ];
+        } else if (selectedTable === "reports") {
+            displayFields = [
+                "id",
+                "title",
+                "description",
+                "location",
+                "category.name",
+                "region.name",
+                "user.name",
+                "user.family",
+                "status",
+            ];
         } else {
-            // برای جدول‌های دیگر (مثل کمپین‌ها و گزارش‌ها)
             displayFields = [
                 "id",
                 "title",
@@ -281,11 +282,10 @@ const ReportBuilder = () => {
                 "start_date",
                 "end_date",
                 "status",
-                "status_id",
             ];
         }
 
-        // فیلتر کردن فیلدهایی که داده دارن
+        // فیلتر کردن فیلدهایی که داده دارند
         displayFields = displayFields.filter((field) => {
             return results.some((item) => getNestedValue(item, field) !== null);
         });
@@ -310,10 +310,6 @@ const ReportBuilder = () => {
                                             if (value === null || value === "") return "—";
                                             if (header === "status") {
                                                 return getStatusText(value);
-                                            }
-                                            if (header === "status_id") {
-                                                const statusObj = getNestedValue(item, "status");
-                                                return getStatusText(statusObj || value);
                                             }
                                             if (header.includes("date") && selectedTable !== "users") {
                                                 return formatJalaliDate(value);
